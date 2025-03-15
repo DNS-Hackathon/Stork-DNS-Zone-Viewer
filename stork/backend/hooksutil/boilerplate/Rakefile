@@ -1,0 +1,37 @@
+desc "Build the hook
+    DEBUG - build plugins in debug mode - default: false"
+task :build do
+    flags = []
+    if ENV["DEBUG"] == "true"
+        flags.append "-gcflags", "all=-N -l"
+    end
+
+    # TODO: Specify the hook name.
+    # It should fallow convention: stork-<application>-<hook_name>
+    # E.g.: stork-agent-foo or stork-server-bar.
+    hook_name = "SPECIFY_ME"
+    hook_name = hook_name + ".so"
+    
+    build_dir = "build"
+    sh "mkdir", "-p", build_dir
+    sh "rm", *FileList[File.join(build_dir, "*.so")]
+
+    output_path = File.join(build_dir, hook_name)
+
+    sh "go", "mod", "tidy"
+    sh "go", "build", *flags, "-buildmode=plugin", "-o", output_path
+
+    size = File.size output_path
+    size /= 1024.0 * 1024.0
+    puts "Hook: '#{output_path}' size: #{'%.2f' % size} MiB"
+end
+
+desc "Lint the hook"
+task :lint do
+    sh "go", "vet"
+end
+
+desc "Run hook unit tests"
+task :unittest do
+    sh "go", "test", "-race", "-v", "./..." 
+end

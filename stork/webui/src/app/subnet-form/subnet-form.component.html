@@ -1,0 +1,291 @@
+<ng-container *ngIf="!state.initError; else showInitError">
+    <ng-container *ngIf="state.loaded; else showSpinner" [formGroup]="state.group">
+        <p-fieldset *ngIf="!state.wizard" legend="Assignments" styleClass="mt-4">
+            <div class="mt-4" [formGroup]="state.group">
+                <span class="p-float-label mb-2">
+                    <p-multiSelect
+                        inputId="servers-select"
+                        optionLabel="label"
+                        optionValue="id"
+                        [options]="state.filteredDaemons"
+                        formControlName="selectedDaemons"
+                        display="chip"
+                        [showToggleAll]="false"
+                        styleClass="w-full adaptive-chips-background"
+                        autofocus="true"
+                        (onChange)="onDaemonsChange($event)"
+                    >
+                    </p-multiSelect>
+                    <label for="servers-select">DHCP Servers</label>
+                </span>
+                <small
+                    *ngIf="
+                        state.group.get('selectedDaemons').invalid &&
+                        (state.group.get('selectedDaemons').dirty || state.group.get('selectedDaemons').touched)
+                    "
+                    class="p-error block"
+                    >At least one server must be selected.
+                </small>
+                <div *ngIf="state.group.get('selectedDaemons')?.disabled" class="flex align-items-center">
+                    <div>Server selection is disabled</div>
+                    <div class="ml-2">
+                        <app-help-tip subject="disabled servers selection">
+                            When a subnet belongs to a shared network, it is not allowed to change the assignments of
+                            the subnet to servers. These assignments can only be controlled in the shared network form,
+                            for the entire shared network. The subnet assignments can be directly controlled only when
+                            the subnet does not belong to a shared network.
+                        </app-help-tip>
+                    </div>
+                </div>
+            </div>
+        </p-fieldset>
+        <p-fieldset legend="Subnet" styleClass="mt-4">
+            <span class="p-float-label mt-4 mb-2">
+                <input id="subnet" pInputText formControlName="subnet" class="w-full" />
+                <label for="subnet">Subnet</label>
+            </span>
+            <ng-container
+                *ngIf="
+                    state.group.get('subnet').invalid &&
+                    (state.group.get('subnet').dirty || state.group.get('subnet').touched)
+                "
+            >
+                <small *ngIf="state.group.get('subnet').hasError('prefixInList')" class="p-error block"
+                    >A subnet with this prefix already exists.
+                </small>
+                <small *ngIf="state.group.get('subnet').hasError('ipPrefix')" class="p-error block"
+                    >{{ state.group.get('subnet').errors.ipPrefix }}
+                </small>
+                <small
+                    *ngIf="
+                        !state.group.get('subnet').hasError('prefixInList') &&
+                        !state.group.get('subnet').hasError('ipPrefix')
+                    "
+                    class="p-error block"
+                    >A valid subnet prefix is required.</small
+                >
+            </ng-container>
+            <span *ngIf="!state.wizard" class="p-float-label mt-5 mb-2">
+                <p-dropdown
+                    inputId="shared-networks-select"
+                    emptyMessage="No shared networks found"
+                    formControlName="sharedNetwork"
+                    optionLabel="name"
+                    optionValue="id"
+                    [options]="state.selectableSharedNetworks"
+                    [showClear]="true"
+                    placeholder="not selected"
+                    styleClass="w-full"
+                    (onChange)="onSharedNetworkChange($event)"
+                >
+                </p-dropdown>
+                <label for="shared-network-select">Shared Network</label>
+            </span>
+        </p-fieldset>
+        <p-fieldset
+            *ngIf="!state.wizard"
+            [formGroup]="state.group.get('userContexts')"
+            legend="Subnet names"
+            styleClass="mt-4"
+        >
+            <div class="flex mt-2 pb-4">
+                <p-checkbox formControlName="unlocked" [binary]="true"> </p-checkbox>
+                <div class="flex ml-2 font-semibold">Unlock setting subnet names for individual servers.</div>
+            </div>
+            <ng-container *ngFor="let userContext of state.group.get('userContexts.names')?.controls; let i = index">
+                <div *ngIf="i === 0 || state.group.get('userContexts.unlocked')?.value" class="mb-3 mt-3">
+                    <div *ngIf="state.group.get('userContexts.unlocked')?.value" class="pb-2">
+                        <p-divider *ngIf="state.group.get('userContexts.names')?.length > 1" align="center">
+                            <p-tag [severity]="getServerTagSeverity(i)">
+                                {{ state.servers[i] }}
+                            </p-tag>
+                        </p-divider>
+                    </div>
+                    <!-- Content -->
+                    <span class="p-float-label mt-2 mb-4" formArrayName="names">
+                        <input id="subnet-name-{{ i }}" pInputText formControlName="{{ i }}" class="w-full" />
+                        <label for="subnet-name-{{ i }}">Subnet name</label>
+                    </span>
+                </div>
+            </ng-container>
+        </p-fieldset>
+        <p-fieldset *ngIf="!state.wizard" legend="Pools" styleClass="mt-4">
+            <p-accordion>
+                <p-accordionTab *ngFor="let pool of state.group.get('pools')?.controls; let i = index">
+                    <ng-template pTemplate="header">
+                        <div class="flex align-items-center">
+                            <span class="vertical-align-middle">{{ getPoolHeader(i)[0] }}</span>
+                            <span
+                                *ngIf="
+                                    pool.invalid &&
+                                    (pool.dirty || pool.touched || pool.get('range')?.hasError('ipRangeOverlaps'))
+                                "
+                                class="ml-2 pi pi-exclamation-triangle text-red-500 text-decoration-none"
+                            ></span>
+                        </div>
+                    </ng-template>
+                    <ng-template pTemplate="content">
+                        <app-address-pool-form
+                            [subnet]="subnet"
+                            [formGroup]="pool"
+                            [selectableDaemons]="getSelectedDaemons()"
+                        >
+                        </app-address-pool-form>
+                        <div class="flex justify-content-start mt-4 mb-4">
+                            <div class="flex align-items-center">
+                                <p-button
+                                    styleClass="p-button-sm p-button-danger"
+                                    icon="pi pi-times"
+                                    label="Delete Pool"
+                                    (click)="onAddressPoolDelete(i)"
+                                ></p-button>
+                            </div>
+                        </div>
+                    </ng-template>
+                </p-accordionTab>
+            </p-accordion>
+            <div class="flex justify-content-start">
+                <div class="flex align-items-center">
+                    <p-button
+                        styleClass="p-button-sm ml-0 mt-4"
+                        icon="fa-solid fa-plus"
+                        label="Add Pool"
+                        severity="warning"
+                        (click)="onAddressPoolAdd()"
+                    ></p-button>
+                </div>
+            </div>
+        </p-fieldset>
+        <p-fieldset *ngIf="!state.wizard && subnet.includes(':')" legend="Prefix Delegation Pools" styleClass="mt-4">
+            <p-accordion>
+                <p-accordionTab *ngFor="let pool of state.group.get('prefixPools')?.controls; let i = index">
+                    <ng-template pTemplate="header">
+                        <div class="flex align-items-center">
+                            <span class="vertical-align-middle">{{ getPrefixPoolHeader(i)[0] }}</span>
+                            <span
+                                *ngIf="
+                                    pool.invalid &&
+                                    (pool.dirty || pool.touched || pool.get('prefixes')?.hasError('ipv6PrefixOverlaps'))
+                                "
+                                class="ml-2 pi pi-exclamation-triangle text-red-500 text-decoration-none"
+                            ></span>
+                        </div>
+                    </ng-template>
+                    <ng-template pTemplate="content">
+                        <app-prefix-pool-form
+                            [subnet]="subnet"
+                            [formGroup]="pool"
+                            [selectableDaemons]="getSelectedDaemons()"
+                        >
+                        </app-prefix-pool-form>
+                        <div class="flex justify-content-start mt-4 mb-4">
+                            <div class="flex align-items-center">
+                                <p-button
+                                    styleClass="p-button-sm p-button-danger"
+                                    icon="pi pi-times"
+                                    label="Delete Pool"
+                                    (click)="onPrefixPoolDelete(i)"
+                                ></p-button>
+                            </div>
+                        </div>
+                    </ng-template>
+                </p-accordionTab>
+            </p-accordion>
+            <div class="flex justify-content-start">
+                <div class="flex align-items-center">
+                    <p-button
+                        styleClass="p-button-sm ml-0 mt-4"
+                        icon="fa-solid fa-plus"
+                        label="Add Pool"
+                        severity="warning"
+                        (click)="onPrefixPoolAdd()"
+                    ></p-button>
+                </div>
+            </div>
+        </p-fieldset>
+        <p-fieldset *ngIf="!state.wizard" legend="DHCP Parameters" styleClass="mt-4">
+            <app-shared-parameters-form
+                [clientClasses]="state.clientClasses"
+                [servers]="state.servers"
+                [formGroup]="state.group.get('parameters')"
+            >
+            </app-shared-parameters-form>
+        </p-fieldset>
+        <p-fieldset
+            *ngIf="!state.wizard"
+            [formGroup]="state.group.get('options')"
+            legend="DHCP Options"
+            styleClass="mt-4"
+        >
+            <div class="flex mt-2 pb-4">
+                <p-checkbox formControlName="unlocked" [binary]="true"> </p-checkbox>
+                <div class="flex ml-2 font-semibold">Unlock setting DHCP options for individual servers.</div>
+            </div>
+            <ng-container *ngFor="let optionSet of state.group.get('options.data')?.controls; let i = index">
+                <div *ngIf="i === 0 || state.group.get('options.unlocked')?.value" class="mb-3 mt-3">
+                    <div *ngIf="state.group.get('options.unlocked')?.value" class="pb-5">
+                        <p-divider *ngIf="state.group.get('options.data')?.length > 1" align="center">
+                            <p-tag [severity]="getServerTagSeverity(i)">
+                                {{ state.servers[i] }}
+                            </p-tag>
+                        </p-divider>
+                    </div>
+                    <app-dhcp-option-set-form
+                        [v6]="state.dhcpv6"
+                        [formArray]="optionSet"
+                        (optionAdd)="onOptionAdd(i)"
+                    ></app-dhcp-option-set-form>
+                </div>
+            </ng-container>
+        </p-fieldset>
+        <div class="flex align-items-center m-5">
+            <p-button
+                *ngIf="subnetId"
+                icon="pi pi-replay"
+                label="Revert Changes"
+                styleClass="mr-2 p-button-secondary"
+                (onClick)="onRevert()"
+            ></p-button>
+            <p-button label="Cancel" styleClass="mr-2 p-button-secondary" (onClick)="onCancel()"></p-button>
+            <p-button
+                *ngIf="!state.wizard"
+                label="Submit"
+                [disabled]="state.group?.invalid"
+                (onClick)="onSubmit()"
+            ></p-button>
+            <p-button
+                *ngIf="state.wizard"
+                [disabled]="state.group?.get('subnet').invalid"
+                label="Proceed"
+                styleClass="p-button-primary"
+                (onClick)="onSubnetProceed()"
+            ></p-button>
+        </div>
+    </ng-container>
+</ng-container>
+<ng-template #showSpinner>
+    <p-progressSpinner></p-progressSpinner>
+</ng-template>
+<ng-template #showInitError>
+    <p-fieldset legend="Errors" styleClass="mt-4">
+        <p-messages severity="error">
+            <ng-template pTemplate>
+                <div class="flex flex-column">
+                    <div class="flex align-items-center m-4">
+                        In order to apply configuration changes, the server should begin a transaction between the user
+                        and the server. The server should also return the current data required, in the form where the
+                        subnet information is specified. Unfortunately, starting the new transaction failed with the
+                        following error:
+                    </div>
+                    <div class="flex align-items-center m-4 font-italic">
+                        {{ state.initError }}
+                    </div>
+                    <div class="flex align-items-center m-4">Retrying can help in some cases.</div>
+                </div>
+            </ng-template>
+        </p-messages>
+        <div class="mt-3">
+            <p-button label="Retry" (onClick)="onRetry()"></p-button>
+        </div>
+    </p-fieldset>
+</ng-template>

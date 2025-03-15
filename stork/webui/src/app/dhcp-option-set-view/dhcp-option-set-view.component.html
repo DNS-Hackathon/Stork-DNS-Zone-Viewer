@@ -1,0 +1,60 @@
+<p-tree [value]="displayedOptionNodes" emptyMessage="No options configured.">
+    <ng-template let-node pTemplate="option">
+        <div class="flex align-items-center p-1">
+            <i class="tree-icon fa fa-cog"></i>
+            <div class="font-semibold ml-2">
+                {{ getOptionTitle(node) }}
+            </div>
+            <div *ngIf="node.data.alwaysSend" class="ml-2">
+                <p-tag>always sent</p-tag>
+            </div>
+            <div *ngIf="isEmpty(node)" class="ml-2">
+                <p-tag>empty option</p-tag>
+            </div>
+            <div *ngIf="!currentLevelOnlyMode && optionNodes.length >= 2 && node.data.level.length > 0" class="ml-2">
+                <p-tag [severity]="getLevelTagSeverity(node)">{{ node.data.level }}</p-tag>
+            </div>
+            <div>
+                <app-help-tip subject="DHCP Option View">
+                    Option fields and suboptions are displayed for the option {{ node.data.code }}. Hover the cursor
+                    over the option fields to see their types. If the "always sent" tag is shown next to the option
+                    code, the option is configured to always be returned to the DHCP client, even when it is not
+                    requested. The "empty option" and "empty suboption" tags indicate that the configured DHCP option
+                    contains no payload. The "{{ node.data.level }}" tag is shown when DHCP options are inherited from
+                    multiple configuration levels; it indicates that the option has been defined at the level presented
+                    by the tag.
+                </app-help-tip>
+            </div>
+        </div>
+    </ng-template>
+    <ng-template let-node pTemplate="suboption">
+        <div class="flex align-items-center p-1">
+            <i class="tree-icon fa fa-cog"></i>
+            <div class="font-semibold ml-2">Suboption {{ node.data.code }}</div>
+            <div *ngIf="isEmpty(node)" class="ml-2">
+                <p-tag>empty suboption</p-tag>
+            </div>
+        </div>
+    </ng-template>
+    <ng-template let-node pTemplate="field">
+        <div class="flex align-items-center">
+            <i class="tree-icon fa fa-ellipsis-h"></i>
+            <div pTooltip="{{ node.data.fieldType }} field" class="field-value-icon ml-2 monospace">
+                {{ node.data.value }}
+            </div>
+        </div>
+    </ng-template>
+</p-tree>
+<ng-container *ngIf="optionNodes.length >= 2 && combinedOptionNodes.length > 0">
+    <p-divider type="dashed"></p-divider>
+    <div class="flex align-items-center">
+        <p-checkbox
+            [(ngModel)]="currentLevelOnlyMode"
+            [binary]="true"
+            inputId="binary"
+            styleClass="ml-2"
+            (onChange)="onCombinedChange()"
+        ></p-checkbox>
+        <span class="ml-2">Show only {{ levels[0] }} options .</span>
+    </div>
+</ng-container>

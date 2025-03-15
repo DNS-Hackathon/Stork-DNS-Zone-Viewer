@@ -1,0 +1,135 @@
+/* You can add global styles to this file, and also import other style files */
+
+.monospace
+  font-family: "Lucida Console", Monaco, monospace
+
+h3
+  padding: 3px 6px 3px 6px
+  margin-top: 2px
+  border-bottom: 2px solid var(--surface-border)
+
+// Overwrite default browser underlined anchors.
+// Do not style PrimeNG internal anchors for components like:
+// - buttons
+// - tab view navigation
+// - menu navigation
+// - accordion header.
+// Apply the underline only for :hover.
+a:not(.p-button):not(.p-tabview-nav-link):not(.p-menuitem-link):not(.p-accordion-header-link)
+  text-decoration: none
+  color: var(--primary-color)
+
+  &:hover
+    text-decoration: underline
+
+  // Utility class to disable underline on demand
+  &.no-underline:hover
+    text-decoration: none
+
+// header should occupy 100% width of parent div so elements inside a header could be right aligned
+p-header
+  width: 100%
+
+.p-fieldset .p-fieldset-legend span
+  // Padding (0.5rem 0.75rem) was added in PrimeNG aura theme to all span elements inside of Fieldset legend.
+  // This breaks many custom Fieldset legends in Stork, because span elements are used there quite often.
+  // Overwrite PrimeNG styling to be more specific.
+  padding: 0
+
+  &.p-fieldset-legend-text, &.stork-fieldset-legend-text
+    // Restore default PrimeNG padding only to span elements with specific classes.
+    padding: 0.5rem 0.75rem
+
+  &.p-fieldset-legend-text:has(+.stork-fieldset-legend-text)
+    // When stork-fieldset-legend-text class is used, do not apply padding to preceding span.p-fieldset-legend-text.
+    padding: 0
+
+  &.p-tag
+    // Sometimes p-tag is used inside Fieldset legend and it also a span, so restore default p-tag padding.
+    padding: 0.25rem 0.4rem
+
+// capitalize first letter of the first word in the container
+.p-capitalize-first::first-letter
+  text-transform: capitalize
+
+// format right content in paginator
+.p-paginator .p-paginator-right-content
+  margin-left: 20px
+  color: var(--text-color-secondary)
+
+// Allows breaking long lines of text on small
+// screens to avoid overlapping on other UI blocks.
+.word-break-all
+  word-break: break-all
+
+// Prevent the content from growing too wide on larger displays.
+.max-w-100rem
+  max-width: 100rem
+
+.max-w-50rem
+  max-width: 50rem
+
+.max-w-40rem
+  max-width: 40rem
+
+// Custom style for part of PrimeNG p-tabMenu component.
+// Sets custom margin for the button which closes active tab.
+.close-tab-btn
+  // moves the button slightly up, and adds little left margin
+  margin: -0.125rem 0 0 0.5rem
+
+// Stork responsive layout using flexbox.
+section.stork-layout
+  display: flex
+  justify-content: space-between
+  gap: 1rem
+  flex-wrap: wrap
+
+  & > article
+    // article is supposed to take 66% width of the viewport.
+    // It is main content on the page.
+    // It shrinks and grows.
+    flex: 2 1 58rem
+
+    & > div:not(:first-child)
+      // If there are more div sections in the article, add some horizontal margin to split them.
+      margin-top: 1rem
+
+  & > aside
+    // aside is supposed to take 33% width of the viewport.
+    // It is additional content on the right hand side.
+    // It shrinks and grows. When there is not enough space, it goes below the article content and both
+    // article and aside take 100% width of the viewport.
+    flex: 1 1 19rem
+
+@media screen and (max-width: 640px)
+  .p-toast.stork-toast
+    // Make toasts visible on smaller screens.
+    // Prevent width overflow.
+    max-width: calc(100vw - 2rem)
+
+@media screen and (max-width: 359px)
+  .p-panel .p-panel-content
+    // Decrease panel content horizontal padding to save the space on smaller viewports.
+    padding-right: 0.5rem
+    padding-left: 0.5rem
+
+// Set 0 margin for full width top navbar position.
+body
+  margin: 0
+  font-family: 'Open Sans', 'Helvetica Neue', sans-serif
+
+// Custom styling for PrimeNG p-multiselect and p-chips components in dark mode.
+// By default, PrimeNG applies darker background color to those components.
+// There are some components in stork, where this background is customized and set to lighter var(--primary-100) color.
+// This is fine for light mode, however it must be tweaked for dark mode.
+// To apply dark mode tweak, those components must have .adaptive-chips-background class applied.
+body.dark .adaptive-chips-background
+  &.p-multiselect.p-multiselect-chip .p-multiselect-token, &.p-chips .p-chips-multiple-container .p-chips-token
+    // Make chips background darker in dark mode.
+    background: var(--primary-400)
+
+// Root variables.
+:root
+  // Max width of form. Apply max-width to prevent the form from becoming too wide.
+  --max-form-width: 35rem

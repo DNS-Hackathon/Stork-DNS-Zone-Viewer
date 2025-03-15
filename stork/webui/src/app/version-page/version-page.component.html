@@ -1,0 +1,453 @@
+<app-breadcrumbs [items]="breadcrumbs">
+    <div page-help>
+        <p>
+            This page provides information about the Kea, Stork, and BIND 9 software versions currently running on
+            monitored machines. It consists of two main parts:
+        </p>
+        <h4>Summary</h4>
+        <p>
+            Stork can identify the ISC software used on all authorized machines and check whether those software
+            packages are up-to-date. The summary table indicates whether there are software updates available for any of
+            the versions that are running, with messages that show how critical those updates are.<br />
+            The table also includes whether the machine's <i>Stork agent</i> version matches the
+            <i>Stork server</i> version.<br />
+            The <i>Stork server</i>'s version is also checked. If an update is available, the notification message is
+            displayed above the Summary table.<br />
+            The version of the <i>Stork server</i> and all <i>Stork agents</i> should match; e.g. if the
+            <i>Stork server</i> version is <i>2.0.0</i>, all Stork agents should also be version <i>2.0.0</i>.<br />
+
+            For each machine where the Kea server is found, Stork also checks whether all the Kea daemons use matching
+            versions.<br />
+
+            If the Kea server has more than one daemon active, they should all use the same version; e.g. if the Kea
+            server has active daemons <i>DHCPv4</i>, <i>DHCPv6</i> and <i>DDNS</i>, and the <i>DHCPv4</i> daemon is
+            version <i>2.6.1</i>, all other Kea daemons (<i>DHCPv6</i> and <i>DDNS</i>) should be version
+            <i>2.6.1</i>.<br />
+
+            The table includes color-coded notices about the importance of upgrading the Kea, BIND 9, or Stork software,
+            based on the software version checks performed. The summary table groups the notices by severity and sorts
+            them in descending order.<br />
+
+            ISC advises reviewing the summaries for machines with red and yellow severity and updating those software
+            versions.
+        </p>
+        <h4>Current releases</h4>
+        <p>
+            These tables show the currently available versions of ISC's Kea, BIND 9, and Stork software. There are links
+            to the software documentation and release notes, as well as to packages and tarball downloads. The table
+            also indicates the version release dates and an EOL (End-of-Life) date for stable releases.<br />
+
+            The tables may include different types of releases described with the following terms:
+        </p>
+        <ul>
+            <li>
+                <b>Development</b> - These releases introduce new and updated features and may not be
+                backward-compatible with their immediate predecessor. Development versions are suitable for those
+                interested in experimenting and providing feedback to ISC but are not recommended for production use.
+            </li>
+            <li><b>Stable</b> - These versions are fully supported and meant for production use.</li>
+            <li>
+                <b>ESV</b> - (only for the BIND 9 Extended Support version) - These versions are suitable for those
+                needing long-term stability.
+            </li>
+            <li><b>EOL date</b> - the release will no longer be supported after that date.</li>
+        </ul>
+        <p>
+            For details about ISC's Software Support Policy and Version Numbering, please refer to this
+            <a href="https://kb.isc.org/docs/aa-00896" target="_blank">KB article</a>.
+        </p>
+        <h4>Data source</h4>
+        <p>The information about ISC software releases shown on this page may come from different sources:</p>
+        <ul>
+            <li>
+                <b>Online JSON file</b> - A
+                <a target="_blank" href="https://www.isc.org/versions.json">JSON file</a> available online. This data is
+                intended to be always up-to-date.
+            </li>
+            <li>
+                <b>Offline JSON file</b> - This data is updated with every Stork release. Of course, the more time has
+                passed since a given release date, the more outdated this data may be. ISC advises regularly checking
+                the <a target="_blank" href="https://isc.org/download">ISC software download page</a> for current
+                information.
+            </li>
+        </ul>
+        <p>
+            The <i>Stork server</i> tries to retrieve the data from the online source first. If for any reason this data
+            cannot be retrieved, there is a fallback mechanism that reads the offline JSON file.
+        </p>
+    </div>
+</app-breadcrumbs>
+<div>
+    <div class="flex flex-wrap gap-2 justify-content-between mb-3">
+        <div class="max-w-50rem header-message">
+            <p-messages
+                styleClass="mb-2"
+                *ngIf="showAlert$ | async"
+                [escape]="false"
+                [enableService]="false"
+                (onClose)="dismissAlert()"
+                [value]="[
+                    {
+                        summary: 'Action required',
+                        severity: 'warn',
+                        detail: 'Stork has detected an ISC software version in use that requires your attention. Please review the Summary table below.',
+                    },
+                ]"
+            ></p-messages>
+            <p-messages
+                styleClass="mb-2"
+                *ngIf="isOfflineData$ | async"
+                [escape]="false"
+                [enableService]="false"
+                [value]="[
+                    {
+                        summary: 'Note',
+                        severity: 'info',
+                        detail:
+                            'The information below about ISC software versions relies on an offline built-in JSON file that was generated on ' +
+                            (dataDate$ | async) +
+                            '. To see up-to-date information, please visit the <a target=\'_blank\' href=\'https:\/\/www.isc.org\/download\/\'>ISC website</a>.',
+                    },
+                ]"
+            ></p-messages>
+            <p-messages
+                styleClass="mb-2"
+                *ngIf="errorOccurred"
+                [value]="[
+                    {
+                        summary: 'Error while fetching data!',
+                        severity: 'error',
+                        detail: 'An error occurred while retrieving software version data from the Stork server!',
+                    },
+                ]"
+                [enableService]="false"
+            ></p-messages>
+        </div>
+        <p-button
+            *ngIf="!errorOccurred"
+            styleClass="flex-none"
+            label="Refresh Versions"
+            icon="pi pi-refresh"
+            (onClick)="refreshVersions()"
+            [disabled]="summaryDataLoading || swVersionsDataLoading"
+        ></p-button>
+    </div>
+    <!-- to be used in the future: Stork server couldn't connect to ISC GitLab to retrieve the latest data about recent software versions. -->
+    <p-panel header="Summary of ISC software versions detected by Stork" styleClass="mt-3">
+        <p-messages
+            *ngIf="(storkServerUpdateAvailable$ | async).available === true"
+            styleClass="mb-2 inline-block"
+            [escape]="false"
+            [enableService]="false"
+            [closable]="false"
+            [value]="[
+                {
+                    summary: 'Stork server update available!',
+                    severity:
+                        (storkServerUpdateAvailable$ | async).feedback?.severity === Severity.error ? 'error' : 'warn',
+                    detail:
+                        (storkServerUpdateAvailable$ | async)?.feedback?.messages?.[0] ||
+                        'A Stork server version update is available.',
+                },
+            ]"
+        ></p-messages>
+        <p-table
+            [value]="machines"
+            styleClass="p-datatable-striped"
+            responsiveLayout="stack"
+            [breakpoint]="'48rem'"
+            id="summary-table"
+            rowGroupMode="subheader"
+            groupRowsBy="versionCheckSeverity"
+            sortField="versionCheckSeverity"
+            sortMode="single"
+            [tableStyle]="{ 'min-width': '15rem' }"
+            [loading]="summaryDataLoading"
+        >
+            <ng-template pTemplate="header">
+                <tr>
+                    <th class="w-6rem lg:w-10rem">Hostname</th>
+                    <th class="w-6rem lg:w-10rem">Location</th>
+                    <th class="w-6rem lg:w-10rem">Agent Version</th>
+                    <th class="w-6rem lg:w-10rem">App(s) Version</th>
+                    <th>Summary</th>
+                </tr>
+            </ng-template>
+
+            <ng-template pTemplate="groupheader" let-m let-expanded="expanded">
+                <tr>
+                    <td colspan="5" class="row-toggle">
+                        <div class="flex align-items-center">
+                            <button
+                                type="button"
+                                pButton
+                                pRipple
+                                [pRowToggler]="m"
+                                class="p-button-text p-button-rounded p-button-plain mr-2 flex-none"
+                                [icon]="expanded ? 'pi pi-chevron-down' : 'pi pi-chevron-right'"
+                            ></button>
+                            <p-badge
+                                [value]="counters[m.versionCheckSeverity]"
+                                [severity]="
+                                    m.versionCheckSeverity === Severity.warn
+                                        ? 'warning'
+                                        : m.versionCheckSeverity === Severity.error
+                                          ? 'danger'
+                                          : Severity[m.versionCheckSeverity]
+                                "
+                                styleClass="flex-none mr-2"
+                            ></p-badge>
+                            <p-messages
+                                [value]="[
+                                    {
+                                        severity: Severity[m.versionCheckSeverity],
+                                        summary: getGroupHeaderMessage(m.versionCheckSeverity, dataDate$ | async),
+                                    },
+                                ]"
+                                [closable]="false"
+                                [enableService]="false"
+                            ></p-messages>
+                        </div>
+                    </td>
+                </tr>
+            </ng-template>
+            <ng-template pTemplate="rowexpansion" let-m>
+                <tr>
+                    <td>
+                        <span class="p-column-title">Hostname</span>
+                        <a routerLink="/machines/{{ m.id }}">{{ m.hostname || m.address }}</a>
+                    </td>
+                    <td><span class="p-column-title">Location</span>{{ m.address }}:{{ m.agentPort }}</td>
+                    <td>
+                        <span class="p-column-title">Agent Version</span>
+                        {{ m.agentVersion }}
+                    </td>
+                    <td>
+                        <span class="p-column-title">App(s) Version</span>
+                        <ng-container *ngFor="let a of m.apps; let i = index"
+                            ><br *ngIf="i > 0" />{{ a.type === 'bind9' ? '' : (a.type | titlecase) }}
+                            {{ a.version }}</ng-container
+                        >
+                    </td>
+                    <td>
+                        <span class="p-column-title">Summary</span>
+                        <ng-container *ngFor="let a of m.apps">
+                            <ng-container *ngIf="a.mismatchingDaemons">
+                                <p-messages
+                                    [value]="[
+                                        {
+                                            summary: 'Kea daemons version mismatch!',
+                                            severity: 'error',
+                                            detail:
+                                                'The Kea <a href=\'/apps/kea/' +
+                                                a.id +
+                                                '\'>' +
+                                                a.name +
+                                                '</a> daemons are using mismatching versions:<br>' +
+                                                (getDaemonsVersions(a) | uppercase) +
+                                                '.<br>All daemons should have the same version!',
+                                        },
+                                    ]"
+                                    styleClass="max-w-50rem"
+                                    [enableService]="false"
+                                    [closable]="false"
+                                    [escape]="false"
+                                ></p-messages>
+                            </ng-container>
+                            <app-version-status
+                                [app]="a.type"
+                                [version]="a.version"
+                                [showAppName]="true"
+                                [inline]="false"
+                                styleClass="max-w-50rem"
+                            ></app-version-status
+                        ></ng-container>
+                        <app-version-status
+                            app="stork"
+                            [version]="m.agentVersion"
+                            [showAppName]="true"
+                            [inline]="false"
+                            styleClass="max-w-50rem"
+                        ></app-version-status>
+                    </td>
+                </tr>
+            </ng-template>
+            <ng-template pTemplate="emptymessage">
+                <tr>
+                    <td colspan="5">
+                        No data retrieved from the Stork server (this may be due to no authorized machines being found).
+                    </td>
+                </tr>
+            </ng-template>
+        </p-table>
+    </p-panel>
+    <p-panel header="Kea current releases" styleClass="mt-3">
+        <p-table [value]="keaVersions" styleClass="p-datatable-striped" [loading]="swVersionsDataLoading">
+            <ng-template pTemplate="header">
+                <tr>
+                    <th class="xl:w-10rem">Version</th>
+                    <th class="xl:w-18rem">Status</th>
+                    <th class="xl:w-18rem">Documentation</th>
+                    <th class="xl:w-18rem">Release date</th>
+                    <th class="xl:w-14rem">EoL Date</th>
+                    <th>Download</th>
+                </tr>
+            </ng-template>
+            <ng-template pTemplate="body" let-v>
+                <tr>
+                    <td>{{ v.version }}</td>
+                    <td>{{ v.status }}</td>
+                    <td>
+                        Kea ARM (<a href="https://kea.readthedocs.io/en/kea-{{ v.version }}/" target="_blank">HTML</a>)
+                        <br />
+                        Release Notes (<a
+                            href="https://downloads.isc.org/isc/kea/{{ v.version }}/Kea-{{
+                                v.version
+                            }}-ReleaseNotes.txt"
+                            target="_blank"
+                            >TXT</a
+                        >)
+                    </td>
+                    <td>
+                        {{ v.releaseDate | date: 'MMMM YYYY' }}
+                    </td>
+                    <td>
+                        {{ v.eolDate | date: 'MMMM YYYY' }}
+                    </td>
+                    <td>
+                        Download (<a
+                            target="_blank"
+                            href="https://cloudsmith.io/~isc/repos/kea-{{
+                                v.status === 'Development' ? 'dev' : v.major + '-' + v.minor
+                            }}/packages/"
+                            >Packages</a
+                        ><a
+                            target="_blank"
+                            class="ml-2"
+                            href="https://dl.cloudsmith.io/public/isc/kea-{{
+                                v.status === 'Development' ? 'dev' : v.major + '-' + v.minor
+                            }}/raw/versions/{{ v.version }}/kea-{{ v.version }}.tar.gz"
+                            >Tarball</a
+                        >)
+                    </td>
+                </tr>
+            </ng-template>
+            <ng-template pTemplate="emptymessage">
+                <tr>
+                    <td colspan="6">No data retrieved from the Stork server.</td>
+                </tr>
+            </ng-template>
+        </p-table>
+    </p-panel>
+    <p-panel header="BIND 9 current releases" styleClass="mt-3">
+        <p-table [value]="bind9Versions" styleClass="p-datatable-striped" [loading]="swVersionsDataLoading">
+            <ng-template pTemplate="header">
+                <tr>
+                    <th class="xl:w-10rem">Version</th>
+                    <th class="xl:w-18rem">Status</th>
+                    <th class="xl:w-18rem">Documentation</th>
+                    <th class="xl:w-18rem">Release date</th>
+                    <th class="xl:w-14rem">EOL Date</th>
+                    <th>Download</th>
+                </tr>
+            </ng-template>
+            <ng-template pTemplate="body" let-v>
+                <tr>
+                    <td>{{ v.version }}</td>
+                    <td>{{ v.status }}<ng-container *ngIf="v.esv">, ESV</ng-container></td>
+                    <td>
+                        BIND {{ v.major + '.' + v.minor }} ARM (<a
+                            href="https://bind9.readthedocs.io/en/v{{ v.version }}/"
+                            target="_blank"
+                            >HTML</a
+                        >)
+                        <br />
+                        Release Notes (<a
+                            href="https://downloads.isc.org/isc/bind9/{{ v.version }}/RELEASE-NOTES-bind-{{
+                                v.version
+                            }}.html"
+                            target="_blank"
+                            >HTML</a
+                        >)
+                    </td>
+                    <td>
+                        {{ v.releaseDate | date: 'MMMM YYYY' }}
+                    </td>
+                    <td>
+                        {{ v.eolDate | date: 'MMMM YYYY' }}
+                    </td>
+                    <td>
+                        Download (<a href="https://kb.isc.org/docs/isc-packages-for-bind-9" target="_blank">Packages</a
+                        ><a
+                            target="_blank"
+                            class="ml-2"
+                            href="https://downloads.isc.org/isc/bind9/{{ v.version }}/bind-{{ v.version }}.tar.xz"
+                            >Tarball</a
+                        >)
+                    </td>
+                </tr>
+            </ng-template>
+            <ng-template pTemplate="emptymessage">
+                <tr>
+                    <td colspan="6">No data retrieved from the Stork server.</td>
+                </tr>
+            </ng-template>
+        </p-table>
+    </p-panel>
+    <p-panel header="Stork current releases" styleClass="mt-3">
+        <p-table [value]="storkVersions" styleClass="p-datatable-striped" [loading]="swVersionsDataLoading">
+            <ng-template pTemplate="header">
+                <tr>
+                    <th class="xl:w-10rem">Version</th>
+                    <th class="xl:w-18rem">Status</th>
+                    <th class="xl:w-18rem">Documentation</th>
+                    <th class="xl:w-18rem">Release date</th>
+                    <th class="xl:w-14rem">EOL Date</th>
+                    <th>Download</th>
+                </tr>
+            </ng-template>
+            <ng-template pTemplate="body" let-v>
+                <tr>
+                    <td>{{ v.version }}</td>
+                    <td>{{ v.status }}</td>
+                    <td>
+                        Stork ARM (<a href="https://stork.readthedocs.io/en/v{{ v.version }}/" target="_blank">HTML</a>)
+                        <br />
+                        Release Notes (<a
+                            href="https://downloads.isc.org/isc/stork/{{ v.version }}/Stork-{{
+                                v.version
+                            }}-ReleaseNotes.txt"
+                            target="_blank"
+                            >TXT</a
+                        >)
+                    </td>
+                    <td>
+                        {{ v.releaseDate | date: 'MMMM YYYY' }}
+                    </td>
+                    <td>
+                        {{ v.eolDate | date: 'MMMM YYYY' }}
+                    </td>
+                    <td>
+                        Download (<a
+                            href="https://cloudsmith.io/~isc/repos/stork{{
+                                v.status === 'Development' ? '-dev' : ''
+                            }}/packages/"
+                            target="_blank"
+                            >Packages</a
+                        ><a
+                            target="_blank"
+                            class="ml-2"
+                            href="https://downloads.isc.org/isc/stork/{{ v.version }}/stork-{{ v.version }}.tar.gz"
+                            >Tarball</a
+                        >)
+                    </td>
+                </tr>
+            </ng-template>
+            <ng-template pTemplate="emptymessage">
+                <tr>
+                    <td colspan="6">No data retrieved from the Stork server.</td>
+                </tr>
+            </ng-template>
+        </p-table>
+    </p-panel>
+</div>

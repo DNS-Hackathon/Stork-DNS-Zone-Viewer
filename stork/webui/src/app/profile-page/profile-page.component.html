@@ -1,0 +1,88 @@
+<app-breadcrumbs [items]="breadcrumbs">
+    <div page-help>
+        <p>This page displays a user profile.</p>
+        <p>
+            Currently, profile information may only be changed by the system administrator, but it can be viewed here.
+        </p>
+        <dl>
+            <dt>ID</dt>
+            <dd>A sequential identifier number used internally by Stork.</dd>
+            <dt>Login</dt>
+            <dd>A friendly name identifying the user; it is unique for a given authentication method.</dd>
+            <dt>Email</dt>
+            <dd>An optional property.</dd>
+            <dt>Group</dt>
+            <dd>The group that the user belongs to.</dd>
+            <dt>Authentication</dt>
+            <dd>
+                The method used to authenticate a user. Internal authentication is the default method, using a login and
+                password stored in the Stork database.
+            </dd>
+            <dt>External ID</dt>
+            <dd>
+                An identifier returned by an external authentication service; it is not specified if the internal
+                authentication method is used.
+            </dd>
+        </dl>
+    </div>
+</app-breadcrumbs>
+
+<div class="grid mt-2 max-w-100rem">
+    <div class="col-fixed ml-2" style="width: 200px">
+        <app-settings-menu></app-settings-menu>
+    </div>
+    <div class="col-12 md:col ml-2">
+        <p-panel header="{{ this.profilePanelHeader }}">
+            <div class="grid word-break-all">
+                <div class="col-12 sm:col-3">
+                    <b>ID:</b>
+                </div>
+                <div class="col-12 sm:col-9">
+                    {{ currentUser.id }}
+                </div>
+                <div class="col-12 sm:col-3">
+                    <b>Login:</b>
+                </div>
+                <div class="col-12 sm:col-9">
+                    {{ currentUser.login }}
+                </div>
+                <div class="col-12 sm:col-3">
+                    <b>Email:</b>
+                </div>
+                <div class="col-12 sm:col-9">
+                    {{ currentUser.email | placeholder }}
+                </div>
+                <div class="col-12 sm:col-3">
+                    <b>Last name:</b>
+                </div>
+                <div class="col-12 sm:col-9">
+                    {{ currentUser.lastname | placeholder }}
+                </div>
+                <div class="col-12 sm:col-3">
+                    <b>First name:</b>
+                </div>
+                <div class="col-12 sm:col-9">
+                    {{ currentUser.name | placeholder }}
+                </div>
+                <div class="col-12 sm:col-3">
+                    <b>Group:</b>
+                </div>
+                <div class="col-12 sm:col-9">
+                    {{ groupName | placeholder }}
+                </div>
+                <div class="col-12 sm:col-3">
+                    <b>Authentication:</b>
+                </div>
+                <div class="col-12 sm:col-9">
+                    {{ currentUser.authenticationMethodId }}
+                </div>
+                <div class="col-12 sm:col-3">
+                    <b>External ID:</b>
+                </div>
+                <div class="col-12 sm:col-9">
+                    {{ currentUser.externalId | placeholder }}
+                </div>
+            </div>
+        </p-panel>
+    </div>
+</div>

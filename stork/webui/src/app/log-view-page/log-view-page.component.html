@@ -1,0 +1,89 @@
+<div style="margin-top: 20px">
+    <a *ngIf="appId" routerLink="/apps/{{ appType }}/{{ appId }}">
+        <span class="fa fa-arrow-left"></span>
+        <span style="margin-left: 5px">Back to {{ appTypeCapitalized }} view</span>
+    </a>
+</div>
+
+<div *ngIf="loaded && loadingError" class="w-full max-w-50rem mt-1">
+    <p-messages
+        [value]="[{ severity: 'error', summary: 'Failed to fetch log file contents.', detail: loadingError }]"
+        [closable]="false"
+    ></p-messages>
+</div>
+
+<p-panel styleClass="log-tail-panel" [style]="{ 'margin-top': '10px' }">
+    <p-header>
+        <div class="flex justify-content-between gap-2">
+            <span class="p-panel-title" style="margin-top: 5px; display: inline-block">
+                <ng-container *ngIf="!loaded"> Loading... </ng-container>
+
+                <ng-container *ngIf="loaded">
+                    Log {{ data.logTargetOutput }}
+                    from the
+                    <app-entity-link
+                        id="app-link"
+                        entity="app"
+                        [attrs]="{ id: appId, type: appType, name: appName, version: '' }"
+                    ></app-entity-link>
+                    on the
+                    <app-entity-link
+                        entity="machine"
+                        [attrs]="{ id: data.machine.id, address: data.machine.address }"
+                    ></app-entity-link>
+                </ng-container>
+            </span>
+            <span class="flex flex-wrap gap-2">
+                <p-button
+                    class="flex-none"
+                    icon="pi pi-plus"
+                    pTooltip="Fetch and present more logs."
+                    id="fetch-more-logs-button"
+                    [disabled]="loadingError"
+                    (click)="fetchMoreLog()"
+                ></p-button>
+                <p-button
+                    class="flex-none"
+                    icon="pi pi-minus"
+                    pTooltip="Fetch and present fewer logs."
+                    id="fetch-fewer-logs-button"
+                    [disabled]="loadingError || maxLength <= maxLengthChunk"
+                    (click)="fetchLessLog()"
+                ></p-button>
+                <p-button
+                    class="flex-none"
+                    icon="pi pi-refresh"
+                    pTooltip="Refresh logs without changing the length of the presented data."
+                    id="refresh-logs-button"
+                    (click)="refreshLog()"
+                ></p-button>
+            </span>
+        </div>
+    </p-header>
+    <div *ngIf="loaded && (!contents || contents.length === 0)">(empty)</div>
+    <div *ngIf="contents && contents.length > 1">...</div>
+    <div *ngFor="let line of contents; let i = index">
+        <span *ngFor="let block of parseLogLine(line)" style="color:{{ logSeverityColor(block) }}">
+            {{ i > 0 || contents.length === 1 ? block : '' }}
+        </span>
+    </div>
+
+    <p-progressSpinner
+        *ngIf="!loaded"
+        [style]="{ width: '30px', height: '30px', 'vertical-align': 'top', 'margin-right': '20px' }"
+        strokeWidth="6"
+        animationDuration=".5s"
+    ></p-progressSpinner>
+
+    <p-footer>
+        <div style="display: flex; justify-content: flex-end">
+            <p-button
+                class="mt-3"
+                icon="pi pi-refresh"
+                pTooltip="Refresh logs without changing the length of the presented data."
+                id="refresh-logs-2-button"
+                (click)="refreshLog()"
+            ></p-button>
+        </div>
+    </p-footer>
+</p-panel>

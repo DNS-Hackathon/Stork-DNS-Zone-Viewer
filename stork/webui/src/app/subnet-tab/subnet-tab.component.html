@@ -1,0 +1,238 @@
+<p-confirmDialog [baseZIndex]="10000" rejectButtonStyleClass="p-button-text"></p-confirmDialog>
+<div *ngIf="subnet" class="mt-4 ml-2 max-w-50rem">
+    <div class="flex text-xl align-items-baseline font-normal text-primary mb-4">
+        <div class="fa fa-project-diagram mr-2"></div>
+        <div id="tab-title-span" class="word-break-all">
+            Subnet {{ subnet.subnet }}
+            <ng-container *ngIf="subnet.sharedNetwork">
+                in <app-entity-link entity="shared-network" [attrs]="getSharedNetworkAttrs()"></app-entity-link>
+            </ng-container>
+        </div>
+        <div>
+            <app-help-tip subject="Subnet View" width="40vw">
+                <p>
+                    Multiple DHCP servers can share a subnet when they run in High Availability (HA) mode or when they
+                    are connected to a shared lease database. In this case, the servers typically have the same subnet
+                    configuration (i.e. the same pools, DHCP options, and other DHCP-specific parameters). However,
+                    there are valid cases when the subnet configurations differ on individual servers. For example, the
+                    interfaces used for subnet selection may have different names; servers may use distinct pools within
+                    the subnet for the address assignment; or the subnet configurations may even use different subnet
+                    identifiers for the same subnet.
+                </p>
+                <p>
+                    The <span class="font-bold">Configured Subnet ID</span> column below lists the subnet identifiers
+                    used to identify each subnet on different servers.
+                </p>
+                <p>
+                    If the configured pools differ on the servers, they are displayed individually for each server.
+                    Otherwise, they are combined in a single box.
+                </p>
+                <p>
+                    Each server maintains its own lease utilization statistics. The first pie charts show the total
+                    address and/or prefix utilizations, and the other pie charts show the utilizations reported by the
+                    individual servers. The individual statistics are not displayed if there is only one server serving
+                    leases in this subnet.
+                </p>
+                <p>The detailed address utilization statistics use the following naming conventions:</p>
+                <ul>
+                    <li><span class="monospace">total</span> - the number of addresses in a subnet.</li>
+                    <li>
+                        <span class="monospace">assigned</span> - the number of allocated leases, including declined
+                        leases.
+                    </li>
+                    <li>
+                        <span class="monospace">used</span> - the number of allocated leases, excluding declined leases.
+                    </li>
+                    <li><span class="monospace">declined</span> - the number of declined leases.</li>
+                    <li>
+                        <span class="monospace">uncertain</span> - optional statistics, only presented when the number
+                        of declined leases is greater than the number assigned (see below).
+                    </li>
+                </ul>
+                <p>
+                    There are rare cases when a Kea server can return inconsistent statistics, with the number of
+                    declined leases greater than the number of assigned leases. It may happen when some DHCP clients
+                    decline leases that are already released or expired; these leases are not counted as assigned, but
+                    the declined statistics are affected. Stork deals with such cases via the "uncertain leases" count,
+                    which holds the estimated number of leases for which it is unclear whether they are allocated,
+                    declined, or free. This statistic is only computed and presented when the number of declined leases
+                    is greater than the number assigned.
+                </p>
+                <p>
+                    The DHCP parameters can be specified at different configuration levels, and the subnet configuration
+                    can inherit them from the global and/or shared-network level. The list below contains all parameters
+                    configured for all servers sharing the subnet, and at all configuration levels, with an effective
+                    value displayed next to the parameter name. Click the button to the left of the parameter name to
+                    view the values specified at the different levels for each server. The subnet-level value takes
+                    precedence over the shared network-level and global values.
+                </p>
+            </app-help-tip>
+        </div>
+    </div>
+    <div class="mb-4">
+        <p-fieldset id="apps-fieldset" legend="DHCP Servers Using the Subnet">
+            <p-table [value]="subnet.localSubnets" styleClass="subnet-servers-table">
+                <ng-template pTemplate="header">
+                    <tr>
+                        <th>Server</th>
+                        <th>Configured Subnet ID</th>
+                    </tr>
+                </ng-template>
+                <ng-template pTemplate="body" let-l>
+                    <tr>
+                        <td class="w-15rem">
+                            <app-entity-link
+                                entity="app"
+                                [showEntityName]="false"
+                                [attrs]="{ type: 'kea', id: l.appId, name: l.appName }"
+                            ></app-entity-link>
+                        </td>
+                        <td>
+                            {{ l.id }}
+                        </td>
+                    </tr>
+                </ng-template>
+            </p-table>
+        </p-fieldset>
+    </div>
+    <div *ngFor="let localSubnet of subnet.localSubnets; let i = index" class="mb-4">
+        <p-fieldset *ngIf="i === 0 || !allDaemonsHaveEqualPools()">
+            <ng-template pTemplate="header">
+                <span class="stork-fieldset-legend-text"
+                    >Pools&nbsp;/&nbsp;
+                    <a
+                        *ngIf="!allDaemonsHaveEqualPools(); else equalPoolsBlock"
+                        routerLink="/apps/kea/{{ localSubnet.appId }}"
+                    >
+                        {{ localSubnet.appName }}
+                    </a>
+                    <ng-template #equalPoolsBlock>
+                        <span class="font-normal"> All Servers </span>
+                    </ng-template>
+                </span>
+            </ng-template>
+            <div
+                *ngIf="
+                    (!localSubnet.pools || localSubnet.pools.length === 0) &&
+                        (!localSubnet.prefixDelegationPools || localSubnet.prefixDelegationPools.length === 0);
+                    else poolsExistBlock
+                "
+            >
+                No pools configured.
+            </div>
+            <ng-template #poolsExistBlock>
+                <ng-container *ngFor="let pool of localSubnet.pools">
+                    <app-address-pool-bar [pool]="pool"></app-address-pool-bar>
+                </ng-container>
+                <ng-container *ngFor="let pool of localSubnet.prefixDelegationPools">
+                    <app-delegated-prefix-bar [prefix]="pool"></app-delegated-prefix-bar>
+                </ng-container>
+            </ng-template>
+        </p-fieldset>
+    </div>
+    <!--
+        Always show the utilization when the subnet has some dynamic lease pools.
+        Some subnets may lack the pools but have static IP reservations. These
+        cases are rare but they are valid. If the utilization is non-zero we
+        display the utilization charts too.
+    -->
+    <div
+        *ngIf="
+            subnet.addrUtilization ||
+            subnet.pdUtilization ||
+            (subnet.stats && (subnetHasAddressPools() || subnetHasPrefixPools()))
+        "
+        class="mb-4"
+    >
+        <p-fieldset id="stats-fieldset" legend="Statistics">
+            <app-utilization-stats-charts [network]="subnet"></app-utilization-stats-charts>
+        </p-fieldset>
+    </div>
+
+    <div *ngFor="let localSubnet of subnet.localSubnets; let i = index" class="mb-4">
+        <p-fieldset *ngIf="i === 0 || !allDaemonsHaveEqualUserContext()">
+            <ng-template pTemplate="header">
+                <span class="stork-fieldset-legend-text"
+                    >User Context&nbsp;/&nbsp;
+                    <a
+                        *ngIf="!allDaemonsHaveEqualUserContext(); else equalPoolsBlock"
+                        routerLink="/apps/kea/{{ localSubnet.appId }}"
+                    >
+                        {{ localSubnet.appName }}
+                    </a>
+                    <ng-template #equalPoolsBlock>
+                        <span class="font-normal"> All Servers </span>
+                    </ng-template>
+                </span>
+            </ng-template>
+            <div *ngIf="!localSubnet.userContext; else userContextExistBlock">No user context configured.</div>
+            <ng-template #userContextExistBlock>
+                <!-- Wrapper to shrink the width of the viewer to its content. -->
+                <div class="w-max">
+                    <!-- JSON viewer -->
+                    <app-json-tree-root [value]="localSubnet.userContext"></app-json-tree-root>
+                </div>
+            </ng-template>
+        </p-fieldset>
+    </div>
+
+    <ng-container *ngIf="subnet.localSubnets?.length > 0">
+        <div class="mb-4">
+            <p-fieldset legend="DHCP Parameters">
+                <app-cascaded-parameters-board
+                    [levels]="
+                        subnet.sharedNetwork?.length > 0 ? ['Subnet', 'Shared Network', 'Global'] : ['Subnet', 'Global']
+                    "
+                    [data]="dhcpParameters"
+                    [excludedParameters]="['options', 'optionsHash']"
+                    [formatComplexTypes]="true"
+                ></app-cascaded-parameters-board>
+            </p-fieldset>
+        </div>
+        <div *ngFor="let localSubnet of subnet.localSubnets; let i = index" class="mb-4">
+            <p-fieldset *ngIf="i === 0 || !allDaemonsHaveEqualDhcpOptions()">
+                <ng-template pTemplate="header">
+                    <span class="stork-fieldset-legend-text"
+                        >DHCP Options&nbsp;/&nbsp;
+                        <a
+                            *ngIf="!allDaemonsHaveEqualDhcpOptions(); else equalDhcpOptionsBlock"
+                            routerLink="/apps/kea/{{ localSubnet.appId }}"
+                        >
+                            {{ localSubnet.appName }}
+                        </a>
+                        <ng-template #equalDhcpOptionsBlock>
+                            <span class="font-normal"> All Servers </span>
+                        </ng-template>
+                    </span>
+                </ng-template>
+                <app-dhcp-option-set-view
+                    [options]="dhcpOptions[i]"
+                    [levels]="
+                        subnet.sharedNetwork?.length > 0 ? ['subnet', 'shared network', 'global'] : ['subnet', 'global']
+                    "
+                >
+                </app-dhcp-option-set-view>
+            </p-fieldset>
+        </div>
+    </ng-container>
+    <div class="flex mt-6">
+        <button
+            *ngIf="subnet.localSubnets?.length > 0"
+            type="button"
+            pButton
+            label="Edit"
+            icon="pi pi-pencil"
+            class="p-button-info ml-2"
+            (click)="onSubnetEditBegin()"
+        ></button>
+        <button
+            type="button"
+            pButton
+            [disabled]="subnetDeleting"
+            label="Delete"
+            icon="pi pi-times"
+            class="p-button-danger ml-2"
+            (click)="confirmDeleteSubnet()"
+        ></button>
+    </div>
+</div>

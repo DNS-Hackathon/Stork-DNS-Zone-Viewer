@@ -1,0 +1,68 @@
+.picker__state-cell
+    // Sets fixed width of the first column to avoid resizing columns when a
+    // checker state is changed.
+    width: 8rem
+
+    .form-check
+        // Flex defines two-column layout. The first column contains the checkbox.
+        // It causes it to not move when the second column's content grows.
+        display: flex
+        align-items: center
+
+    :host ::ng-deep & .p-tag-value::first-letter
+        // Capitalize first letter of the state Tag.
+        text-transform: capitalize
+
+.picker__state-cell--inherit-enabled
+    .picker__state-inherit-status
+        // Sets (dark) green color for inherited status if the checker is enabled.
+        color: var(--green-700)
+
+.picker__state-cell--inherit-disabled
+    .picker__state-inherit-status
+        // Sets (dark) red color for inherited status if the checker is disabled.
+        color: var(--red-700)
+
+.picker__chip-cell .chips
+    // The gaps properties are supported only for flex and grid modes.
+    // The flex with gaps avoids creating additional bottom and right margins
+    // after the last chip.
+    display: flex
+    // Wraps the items to the next rows.
+    flex-wrap: wrap
+    // Sets the horizontal gaps between chips.
+    column-gap: 0.5rem
+    // Sets the vertical gaps between chips.
+    row-gap: 0.5rem
+
+    ::ng-deep .p-chip-text
+        // Disables the word wrap for chips.
+        white-space: nowrap
+
+.picker__empty
+    td
+        // Centers the empty placeholder or loading icon
+        text-align: center
+
+.picker__buttons
+    // Enables the flex features.
+    display: flex
+    // Specifies the gap between the buttons.
+    column-gap: 0.5rem
+
+.picker--minimal
+    .picker__description-column
+        // Hides the description column on minimal layout.
+        display: none
+
+    .picker__selector-column
+        // Hides the selector column on minimal layout.
+        display: none
+
+    .picker__trigger-column
+        // Hides the trigger column on minimal layout.
+        display: none
+
+    .picker__state-cell
+        // Prevents to wrap the label on minimal layout.
+        width: 12rem

@@ -1,0 +1,5 @@
+#!/bin/sh
+
+set -eu
+
+deluser stork-agent >/dev/null || /bin/true

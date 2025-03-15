@@ -1,0 +1,23 @@
+<app-breadcrumbs [items]="breadcrumbs">
+    <div page-help>
+        <p>This page displays the configurations of the review checkers.</p>
+        <p>
+            Stork can detect and report potential issues with the monitored servers' configurations. Dedicated
+            "checkers" validate particular aspects of each configuration file, and generate reports with detailed
+            descriptions and suggestions to eliminate the most typical errors and misconfigurations.
+        </p>
+        <p>
+            If any configuration reports are not relevant in your deployment, they can be disabled globally or for
+            selected daemons. Any disabled checkers are not run, which improves both the clarity of the reports list and
+            Stork's performance.
+        </p>
+        <p>
+            Use the list on this page to disable or enable the checkers globally (i.e. for all daemons). To override
+            this choice for individual daemons, choose the desired App Name in the Services Status section of the DHCP
+            dashboard, and then click the <em>Checkers</em> button in the Configuration Review Reports section at the
+            bottom of the page.
+        </p>
+    </div>
+</app-breadcrumbs>
+
+<app-config-checker-preference-updater></app-config-checker-preference-updater>

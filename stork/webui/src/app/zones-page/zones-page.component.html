@@ -1,0 +1,491 @@
+<app-breadcrumbs [items]="breadcrumbs">
+    <div page-help>
+        <p>This page displays a list of DNS zones.</p>
+    </div>
+</app-breadcrumbs>
+
+<ng-template #emptyMessage let-colspan let-empty="empty">
+    <ng-container *ngIf="fetchInProgress">
+        <tr>
+            <td [attr.colspan]="colspan">
+                <p-message
+                    styleClass="mb-3"
+                    severity="info"
+                    [text]="
+                        'The server is fetching zones from the agents in the background. It may take some time, depending on the number of the DNS servers and zones. Completed for ' +
+                        fetchAppsCompletedCount +
+                        ' out of ' +
+                        fetchTotalAppsCount +
+                        ' DNS apps.'
+                    "
+                ></p-message>
+                <h4>Progress</h4>
+                <p-progressBar [value]="(fetchAppsCompletedCount / fetchTotalAppsCount) * 100" styleClass="max-w-30rem">
+                    <ng-template pTemplate="content">
+                        <span>{{ fetchAppsCompletedCount }}/{{ fetchTotalAppsCount }}</span>
+                    </ng-template>
+                </p-progressBar>
+            </td>
+        </tr>
+        <tr *ngFor="let i of Array(3)">
+            <td *ngFor="let j of Array(colspan)">
+                <p-skeleton />
+            </td>
+        </tr>
+    </ng-container>
+
+    <tr *ngIf="!fetchInProgress">
+        <td [attr.colspan]="colspan">
+            <ng-container *ngIf="!wasZoneFetchSent() && !hasFilter(zonesTable.filters)">
+                <p-message
+                    styleClass="mb-2 mx-0 md:mx-8"
+                    severity="info"
+                    [text]="
+                        'Zones were not fetched yet from DNS servers. You can now trigger zones fetch operation. ' +
+                        'This operation instructs the Stork server to fetch the zones from all DNS servers' +
+                        ' and update them in the Stork database. It may take some time, depending on the number of the ' +
+                        'DNS servers and zones. If you decide to trigger the zones fetch ' +
+                        'operation, you can use the button below.'
+                    "
+                ></p-message>
+                <p-button
+                    styleClass="mx-0 md:mx-8"
+                    label="Fetch Zones"
+                    icon="pi pi-download"
+                    (onClick)="sendPutZonesFetch(true)"
+                    [disabled]="fetchInProgress || putZonesFetchLocked"
+            /></ng-container>
+            <p *ngIf="wasZoneFetchSent() || hasFilter(zonesTable.filters)">
+                {{ empty }}
+            </p>
+        </td>
+    </tr>
+</ng-template>
+
+<ng-template #localZoneCells let-localZone>
+    <td>
+        <a routerLink="/apps/bind9/{{ localZone.appId }}">{{ localZone.appName }}</a>
+    </td>
+    <td>
+        <a routerLink="/dns/zones" [queryParams]="{ appId: localZone.appId }" (click)="activateFirstTab()">{{
+            localZone.appId
+        }}</a>
+    </td>
+    <td>
+        <a routerLink="/dns/zones" [queryParams]="{ text: localZone.view }" (click)="activateFirstTab()">{{
+            localZone.view
+        }}</a>
+    </td>
+    <td>
+        <a routerLink="/dns/zones" [queryParams]="{ zoneType: localZone.zoneType }" (click)="activateFirstTab()">{{
+            localZone.zoneType
+        }}</a>
+    </td>
+    <td>{{ localZone.serial }}</td>
+    <td>
+        <a routerLink="/dns/zones" [queryParams]="{ zoneClass: localZone.class }" (click)="activateFirstTab()">{{
+            localZone.class
+        }}</a>
+    </td>
+    <td>{{ localZone.loadedAt | localtime | placeholder: 'never' }}</td>
+</ng-template>
+
+<p-dialog header="Zones Fetch Status" [modal]="true" [(visible)]="fetchStatusVisible" styleClass="max-w-screen">
+    <div class="mb-2 flex gap-2 flex-wrap justify-content-end">
+        <p-button
+            label="Refresh List"
+            icon="pi pi-refresh"
+            (onClick)="refreshFetchStatusTable()"
+            id="refresh-fetch-status-data"
+        />
+    </div>
+    <p-table
+        [value]="zonesFetchStates"
+        [paginator]="true"
+        [rows]="10"
+        [rowsPerPageOptions]="[10, 30, 100]"
+        [totalRecords]="zonesFetchStatesTotal"
+        [loading]="zonesFetchStatesLoading"
+        [alwaysShowPaginator]="false"
+        styleClass="p-datatable-striped datatable-responsive"
+    >
+        <ng-template pTemplate="header">
+            <tr>
+                <th>App Name</th>
+                <th>App ID</th>
+                <th>Zone Count</th>
+                <th>Status</th>
+                <th>Error</th>
+                <th>Created At</th>
+            </tr>
+        </ng-template>
+        <ng-template pTemplate="body" let-state>
+            <tr>
+                <td>
+                    <a routerLink="/apps/bind9/{{ state.appId }}">{{ state.appName }}</a>
+                </td>
+                <td>{{ state.appId }}</td>
+                <td>{{ state.zoneCount || 'n/a' }}</td>
+                <td>
+                    <p-tag
+                        value="{{ state.status === 'erred' ? 'Error' : (state.status | titlecase) }} "
+                        [severity]="getSeverity(state.status)"
+                        [pTooltip]="getTooltip(state.status)"
+                    />
+                </td>
+                <td>
+                    <p-message
+                        *ngIf="state.error"
+                        severity="error"
+                        [text]="getStateErrorMessage(state.error)"
+                    ></p-message>
+                </td>
+                <td>{{ state.createdAt | localtime | placeholder: 'never' }}</td>
+            </tr>
+        </ng-template>
+        <ng-template pTemplate="emptymessage">
+            <ng-container
+                *ngTemplateOutlet="
+                    emptyMessage;
+                    context: {
+                        $implicit: 6,
+                        empty: 'There is no Zones Fetch Status information available in the Stork server database.',
+                    }
+                "
+            ></ng-container>
+        </ng-template>
+    </p-table>
+</p-dialog>
+
+<p-confirmDialog styleClass="w-28rem" />
+
+<p-tabView (onClose)="onTabClose($event)" [(activeIndex)]="activeTabIdx" [scrollable]="true">
+    <p-tabPanel header="Zones">
+        <div class="my-2 flex gap-2 flex-wrap justify-content-end">
+            <p-button
+                label="Fetch Status"
+                [icon]="fetchInProgress ? 'pi pi-spin pi-spinner' : 'pi pi-info-circle'"
+                (onClick)="fetchStatusVisible = true"
+                id="fetch-status"
+            />
+            <p-button
+                label="Fetch Zones"
+                icon="pi pi-download"
+                (onClick)="sendPutZonesFetch()"
+                [disabled]="fetchInProgress || putZonesFetchLocked"
+                id="fetch-zones"
+            />
+            <p-button
+                label="Refresh List"
+                icon="pi pi-refresh"
+                (onClick)="onLazyLoadZones(zonesTable.createLazyLoadMetadata())"
+                id="refresh-zones-data"
+            />
+        </div>
+        <p-table
+            #zonesTable
+            id="zones-table"
+            [value]="zones"
+            [lazyLoadOnInit]="loadZonesOnInit"
+            [lazy]="true"
+            (onLazyLoad)="onLazyLoadZones($event)"
+            [paginator]="true"
+            [rows]="10"
+            [rowsPerPageOptions]="[10, 30, 100]"
+            [showCurrentPageReport]="true"
+            stateStorage="session"
+            [stateKey]="zonesStateKey"
+            currentPageReportTemplate="{currentPage} of {totalPages} pages"
+            styleClass="p-datatable-striped datatable-responsive"
+            dataKey="id"
+            [expandedRowKeys]="zonesExpandedRows"
+            [loading]="zonesLoading"
+            [totalRecords]="zonesTotal"
+        >
+            <ng-template pTemplate="caption">
+                <p-panel #filtersPanel [toggleable]="true">
+                    <ng-template pTemplate="headericons"></ng-template>
+                    <ng-template pTemplate="header">
+                        <div class="flex align-items-center gap-2">
+                            <p-button
+                                type="button"
+                                [text]="true"
+                                [rounded]="true"
+                                [plain]="true"
+                                [icon]="!filtersPanel.collapsed ? 'pi pi-chevron-down' : 'pi pi-chevron-right'"
+                                (click)="filtersPanel.toggle($event)"
+                            />
+                            <i class="pi pi-filter"></i>
+                            <span class="font-bold">Filters</span>
+                            <p-tag
+                                icon="pi pi-check"
+                                value="Filter applied"
+                                severity="success"
+                                *ngIf="hasFilter(zonesTable.filters)"
+                                [rounded]="true"
+                            ></p-tag>
+                            <app-help-tip subject="Filtering" id="filtering-help-button">
+                                <p>Filtering help</p>
+                            </app-help-tip>
+                        </div>
+                    </ng-template>
+                    <div class="flex flex-wrap gap-3 row-gap-5 mt-3 align-items-center">
+                        <p-button
+                            label="Clear"
+                            [severity]="hasFilter(zonesTable.filters) ? 'warning' : 'secondary'"
+                            icon="pi pi-filter-slash"
+                            (click)="clearTableState()"
+                            [disabled]="!hasFilter(zonesTable.filters)"
+                        />
+                        <div class="flex-auto"></div>
+                        <p-columnFilter field="appId" matchMode="contains" [showMenu]="false">
+                            <ng-template pTemplate="filter" let-value let-filterConstraint="filterConstraint">
+                                <span class="p-float-label">
+                                    <p-inputNumber
+                                        inputId="app-id"
+                                        mode="decimal"
+                                        [useGrouping]="false"
+                                        (onInput)="filterTable($event.value === 0 ? 1 : $event.value, filterConstraint)"
+                                        [ngModel]="value"
+                                        min="1"
+                                        styleClass="w-10rem"
+                                    ></p-inputNumber>
+                                    <label for="app-id">App ID</label>
+                                </span>
+                            </ng-template>
+                        </p-columnFilter>
+                        <p-columnFilter field="zoneSerial" matchMode="contains" [showMenu]="false">
+                            <ng-template pTemplate="filter" let-value let-filterConstraint="filterConstraint">
+                                <span class="p-float-label">
+                                    <input
+                                        pInputText
+                                        type="text"
+                                        (input)="filterTable($event.target.value, filterConstraint)"
+                                        [ngModel]="value"
+                                        id="zone-serial"
+                                        class="w-10rem"
+                                    />
+                                    <label for="zone-serial">Serial</label>
+                                </span>
+                            </ng-template>
+                        </p-columnFilter>
+                        <p-columnFilter field="zoneType" matchMode="equals" [showMenu]="false">
+                            <ng-template pTemplate="filter" let-value let-filterConstraint="filterConstraint">
+                                <span class="p-float-label">
+                                    <p-multiSelect
+                                        inputId="zone-type"
+                                        [options]="zoneTypes"
+                                        [ngModel]="value"
+                                        styleClass="w-12rem"
+                                        (onChange)="filterTable($event.value, filterConstraint)"
+                                    />
+                                    <label for="zone-type">Zone Type</label>
+                                </span>
+                            </ng-template>
+                        </p-columnFilter>
+                        <p-columnFilter field="zoneClass" matchMode="equals" [showMenu]="false">
+                            <ng-template pTemplate="filter" let-value let-filter="filterCallback">
+                                <span class="p-float-label">
+                                    <p-dropdown
+                                        inputId="zone-class"
+                                        [options]="zoneClasses"
+                                        (onChange)="filter($event.value)"
+                                        [ngModel]="value"
+                                        styleClass="w-10rem"
+                                    ></p-dropdown>
+                                    <label for="zone-class">Zone Class</label>
+                                </span>
+                            </ng-template>
+                        </p-columnFilter>
+                        <p-columnFilter field="appType" matchMode="equals" [showMenu]="false">
+                            <ng-template pTemplate="filter" let-value let-filter="filterCallback">
+                                <span class="p-float-label">
+                                    <p-dropdown
+                                        inputId="app-type"
+                                        [options]="appTypes"
+                                        optionLabel="name"
+                                        optionValue="value"
+                                        (onChange)="filter($event.value)"
+                                        [ngModel]="value"
+                                        styleClass="w-10rem"
+                                    ></p-dropdown>
+                                    <label for="app-type">App Type</label>
+                                </span>
+                            </ng-template>
+                        </p-columnFilter>
+                        <p-columnFilter field="text" matchMode="contains" [showMenu]="false">
+                            <ng-template pTemplate="filter" let-value let-filterConstraint="filterConstraint">
+                                <span class="p-input-icon-left">
+                                    <i class="pi pi-search"></i>
+                                    <input
+                                        pInputText
+                                        type="text"
+                                        (input)="filterTable($event.target.value, filterConstraint)"
+                                        [ngModel]="value"
+                                        placeholder="App name, Zone name or view"
+                                    />
+                                </span>
+                            </ng-template>
+                        </p-columnFilter>
+                    </div>
+                </p-panel>
+            </ng-template>
+            <ng-template pTemplate="header">
+                <tr>
+                    <th class="w-3rem sm:w-5rem"></th>
+                    <th>Zone Name</th>
+                    <th># of Associated DNS Servers</th>
+                </tr>
+            </ng-template>
+            <ng-template pTemplate="body" let-zone let-expanded="expanded">
+                <tr>
+                    <td>
+                        <p-button
+                            type="button"
+                            [pRowToggler]="zone"
+                            [text]="true"
+                            [rounded]="true"
+                            [plain]="true"
+                            [icon]="expanded ? 'pi pi-chevron-down' : 'pi pi-chevron-right'"
+                        />
+                    </td>
+                    <td>
+                        <p-button [label]="zone.name" [link]="true" (click)="openTab(zone)" styleClass="px-0 md:px-2" />
+                    </td>
+                    <td>
+                        {{ zone?.localZones?.length ?? 0 }}
+                    </td>
+                </tr>
+            </ng-template>
+
+            <ng-template pTemplate="rowexpansion" let-zone>
+                <tr>
+                    <td colspan="3">
+                        <div class="p-2">
+                            <p-table
+                                [value]="zone.localZones ?? []"
+                                dataKey="serial"
+                                [paginator]="true"
+                                [rows]="10"
+                                [rowsPerPageOptions]="[10, 30, 100]"
+                                [alwaysShowPaginator]="false"
+                                [columns]="localZoneColumns"
+                                styleClass="p-datatable-striped datatable-responsive"
+                            >
+                                <ng-template pTemplate="header" let-columns>
+                                    <tr>
+                                        <th *ngFor="let col of columns">{{ col }}</th>
+                                    </tr>
+                                </ng-template>
+                                <ng-template pTemplate="body" let-localZone>
+                                    <tr>
+                                        <ng-container
+                                            *ngTemplateOutlet="localZoneCells; context: { $implicit: localZone }"
+                                        ></ng-container>
+                                    </tr>
+                                </ng-template>
+                                <ng-template pTemplate="emptymessage" let-columns>
+                                    <tr>
+                                        <td [attr.colspan]="columns.length">
+                                            There are no DNS servers associated with this zone.
+                                        </td>
+                                    </tr>
+                                </ng-template>
+                            </p-table>
+                        </div>
+                    </td>
+                </tr>
+            </ng-template>
+            <ng-template pTemplate="emptymessage">
+                <ng-container
+                    *ngTemplateOutlet="
+                        emptyMessage;
+                        context: {
+                            $implicit: 3,
+                            empty:
+                                'No zones were found in the Stork server database' +
+                                (hasFilter(zonesTable.filters) ? ' for the applied filter' : '') +
+                                '.',
+                        }
+                    "
+                ></ng-container>
+            </ng-template>
+            <ng-template pTemplate="paginatorright" let-paginatorState>
+                Total: {{ paginatorState.totalRecords | pluralize: 'zone' }}
+            </ng-template>
+        </p-table>
+    </p-tabPanel>
+    <p-tabPanel *ngFor="let tab of openTabs" [header]="tab.name" [closable]="true">
+        <div class="max-w-100rem">
+            <div class="flex text-xl align-items-baseline font-normal text-primary mb-4">
+                <div class="pi pi-sitemap mr-2"></div>
+                <div class="word-break-all">
+                    DNS Zone <span class="font-semibold">{{ tab.name }}</span>
+                </div>
+            </div>
+            <div class="mb-4">
+                <p-fieldset legend="Zone Data">
+                    <p-table [value]="[tab]">
+                        <ng-template pTemplate="body" let-zone>
+                            <tr>
+                                <td class="font-semibold w-14rem">Name</td>
+                                <td>{{ zone.name }}</td>
+                            </tr>
+                            <tr>
+                                <td class="font-semibold w-14rem">Stork Internal Zone ID</td>
+                                <td>{{ zone.id }}</td>
+                            </tr>
+                        </ng-template>
+                    </p-table>
+                </p-fieldset>
+            </div>
+            <div class="mb-4">
+                <p-fieldset legend="DNS Servers Associated with the Zone">
+                    <p-table
+                        [value]="tab.localZones"
+                        dataKey="serial"
+                        [paginator]="true"
+                        [rows]="10"
+                        [rowsPerPageOptions]="[10, 30, 100]"
+                        [alwaysShowPaginator]="false"
+                        [columns]="localZoneColumns"
+                        styleClass="p-datatable-striped datatable-responsive"
+                    >
+                        <ng-template pTemplate="header" let-columns>
+                            <tr>
+                                <th *ngFor="let col of columns">{{ col }}</th>
+                                <th>Fetch Status</th>
+                            </tr>
+                        </ng-template>
+                        <ng-template pTemplate="body" let-localZone>
+                            <tr>
+                                <ng-container
+                                    *ngTemplateOutlet="localZoneCells; context: { $implicit: localZone }"
+                                ></ng-container>
+                                <td>
+                                    <p-tag
+                                        *ngIf="zoneInventoryStateMap.get(localZone.daemonId)"
+                                        value="{{
+                                            zoneInventoryStateMap.get(localZone.daemonId).status === 'erred'
+                                                ? 'Error'
+                                                : (zoneInventoryStateMap.get(localZone.daemonId).status | titlecase)
+                                        }} "
+                                        [severity]="getSeverity(zoneInventoryStateMap.get(localZone.daemonId).status)"
+                                        [pTooltip]="getTooltip(zoneInventoryStateMap.get(localZone.daemonId).status)"
+                                    />
+                                </td>
+                            </tr>
+                        </ng-template>
+                        <ng-template pTemplate="emptymessage">
+                            <tr>
+                                <td [attr.colspan]="localZoneColumns.length + 1">
+                                    There are no DNS servers associated with this zone.
+                                </td>
+                            </tr>
+                        </ng-template>
+                    </p-table>
+                </p-fieldset>
+            </div>
+        </div>
+    </p-tabPanel>
+</p-tabView>

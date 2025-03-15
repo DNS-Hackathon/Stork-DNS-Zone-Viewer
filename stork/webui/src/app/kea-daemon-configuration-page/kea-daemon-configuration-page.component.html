@@ -1,0 +1,73 @@
+<app-breadcrumbs [items]="breadcrumbs">
+    <div page-help>
+        <p>This page displays a raw configuration for the Kea daemon.</p>
+    </div>
+</app-breadcrumbs>
+
+<p-panel>
+    <ng-template pTemplate="header">
+        <div class="flex flex-wrap gap-2 w-full justify-content-end">
+            <!-- Title -->
+            <span class="panel-header__title flex-auto font-semibold">JSON</span>
+
+            <!-- Collapse/expand button -->
+            <button
+                pButton
+                class="flex-none"
+                type="button"
+                icon="fa fa-expand-alt"
+                label="Expand"
+                (click)="onClickToggleNodes()"
+                *ngIf="autoExpand === 'none'"
+                [disabled]="configuration === null"
+            ></button>
+            <button
+                pButton
+                class="flex-none"
+                type="button"
+                icon="fa fa-compress-alt"
+                label="Collapse"
+                (click)="onClickToggleNodes()"
+                *ngIf="autoExpand === 'all'"
+                [disabled]="configuration === null"
+            ></button>
+
+            <!-- Refresh button -->
+            <button
+                pButton
+                class="flex-none"
+                type="button"
+                icon="fa fa-sync"
+                label="Refresh"
+                (click)="onClickRefresh()"
+                [disabled]="configuration === null && !failedFetch"
+            ></button>
+
+            <!-- Download button -->
+            <a
+                class="flex-none"
+                type="button"
+                icon="fa fa-download"
+                [download]="downloadFilename"
+                [href]="'/api/daemons/' + daemonId + '/config'"
+            >
+                <button
+                    pButton
+                    type="button"
+                    icon="fa fa-download"
+                    label="Download"
+                    [disabled]="configuration === null"
+                ></button>
+            </a>
+        </div>
+    </ng-template>
+
+    <!-- JSON viewer -->
+    <app-json-tree-root
+        *ngIf="!failedFetch"
+        class="json-content"
+        [value]="configuration"
+        [autoExpand]="autoExpand"
+    ></app-json-tree-root>
+    <p-message *ngIf="failedFetch" severity="warn" text="Fetching daemon configuration failed"></p-message>
+</p-panel>

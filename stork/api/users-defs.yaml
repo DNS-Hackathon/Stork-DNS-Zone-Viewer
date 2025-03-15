@@ -1,0 +1,126 @@
+  User:
+    type: object
+    required:
+      - id
+      - authenticationMethodId
+    properties:
+      id:
+        type: integer
+      login:
+        type: string
+      email:
+        type: string
+      name:
+        type: string
+      lastname:
+        type: string
+      authenticationMethodId:
+        type: string
+      externalId:
+        type: string
+      groups:
+        type: array
+        items:
+          type: integer
+      changePassword:
+        type: boolean
+
+  Password:
+    type: string
+
+  PasswordChange:
+    type: object
+    required:
+      - oldpassword
+      - newpassword
+    properties:
+      oldpassword:
+        $ref: "#/definitions/Password"
+      newpassword:
+        $ref: "#/definitions/Password"
+
+  UserAccount:
+    type: object
+    required:
+      - user
+      - password
+    properties:
+      user:
+        $ref: "#/definitions/User"
+      password:
+        $ref: "#/definitions/Password"
+
+  Users:
+    type: object
+    properties:
+      items:
+        type: array
+        items:
+          $ref: '#/definitions/User'
+      total:
+        type: integer
+
+  Group:
+    type: object
+    required:
+      - id
+      - name
+      - description
+    properties:
+      id:
+        type: integer
+      name:
+        type: string
+      description:
+        type: string
+
+  Groups:
+    type: object
+    properties:
+      items:
+        type: array
+        items:
+          $ref: '#/definitions/Group'
+      total:
+        type: integer
+
+  SessionCredentials:
+    type: object
+    required:
+      - authenticationMethodId
+      - identifier
+      - secret
+    properties:
+      authenticationMethodId:
+        description: Unique ID of the authentication method
+        type: string
+      identifier:
+        description: Identifier of the user logging to the system (e.g., email, login, ID number; depending on authentication method)
+        type: string
+      secret:
+        description: User secret to log in to the system (e.g., password, token, one-share code; depending on authentication method)
+        type: string
+
+  AuthenticationMethod:
+    type: object
+    properties:
+      id:
+        type: string
+      name:
+        type: string
+      description:
+        type: string
+      formLabelIdentifier:
+        type: string
+      formLabelSecret:
+        type: string
+
+  AuthenticationMethods:
+    type: object
+    properties:
+      items:
+        type: array
+        items:
+          $ref: '#/definitions/AuthenticationMethod'
+      total:
+        type: integer

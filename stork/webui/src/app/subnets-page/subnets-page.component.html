@@ -1,0 +1,73 @@
+<app-breadcrumbs [items]="breadcrumbs">
+    <div page-help>
+        <p>This page displays a list of the subnets defined in the Kea instance.</p>
+        <p>
+            Stork retrieves subnet information using the
+            <a href="https://kea.readthedocs.io/en/latest/api.html#config-get">config-get</a>
+            command, which returns all subnets configured in your configuration file. If you are using
+            <a href="https://kea.readthedocs.io/en/latest/arm/dhcp4-srv.html#configuration-backend-in-dhcpv4"
+                >config backend</a
+            >, the subnets that Kea retrieves from the database are listed here as well.
+        </p>
+    </div>
+</app-breadcrumbs>
+
+<p-tabMenu [model]="tabs" [activeItem]="tabs[activeTabIndex]" styleClass="mb-2" [scrollable]="true">
+    <ng-template pTemplate="item" let-item let-i="index">
+        <a
+            role="menuitem"
+            pRipple
+            [routerLink]="item.routerLink"
+            [queryParams]="i === 0 ? subnetsTableComponent?.validFilter : null"
+            class="p-ripple p-element p-menuitem-link"
+        >
+            <div class="flex justify-content-space-between">
+                <div class="p-menuitem-icon" [ngClass]="item.icon" *ngIf="item.icon"></div>
+                <div class="p-menuitem-text">
+                    <b>{{ item.label }}</b>
+                </div>
+                <div *ngIf="i !== 0" class="pi pi-times close-tab-btn" (click)="closeTabByIndex(i, $event)"></div>
+            </div>
+        </a>
+    </ng-template>
+</p-tabMenu>
+
+<div>
+    <!-- Subnet tab template -->
+    <div
+        *ngIf="activeTabIndex !== 0"
+        [ngSwitch]="openedTabs[activeTabIndex].tabType"
+        class="p-component"
+        [class.max-w-50rem]="openedTabs[activeTabIndex].tabType !== SubnetTabType.Display"
+    >
+        <app-subnet-tab
+            *ngSwitchCase="SubnetTabType.Display"
+            [subnet]="openedTabs[activeTabIndex].tabSubject"
+            (subnetEditBegin)="onSubnetEditBegin(openedTabs[activeTabIndex].tabSubject)"
+            (subnetDelete)="onSubnetDelete(openedTabs[activeTabIndex].tabSubject)"
+        ></app-subnet-tab>
+        <app-subnet-form
+            *ngSwitchCase="SubnetTabType.New"
+            [state]="openedTabs[activeTabIndex].state"
+            (formDestroy)="onSubnetFormDestroy($event)"
+            (formSubmit)="onSubnetFormSubmit($event)"
+            (formCancel)="onSubnetFormCancel()"
+        ></app-subnet-form>
+        <app-subnet-form
+            *ngSwitchCase="SubnetTabType.Edit"
+            [state]="openedTabs[activeTabIndex].state"
+            [subnetId]="openedTabs[activeTabIndex].tabSubject.id"
+            (formDestroy)="onSubnetFormDestroy($event)"
+            (formSubmit)="onSubnetFormSubmit($event)"
+            (formCancel)="onSubnetFormCancel(openedTabs[activeTabIndex].tabSubject.id)"
+        ></app-subnet-form>
+    </div>
+
+    <!-- Subnet list tab -->
+    <app-subnets-table
+        #subnetsTableComponent
+        [hidden]="activeTabIndex !== 0"
+        [grafanaUrl]="grafanaUrl"
+        [dataLoading]="loading"
+    ></app-subnets-table>
+</div>

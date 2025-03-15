@@ -1,0 +1,35 @@
+<ng-container *ngIf="network; else noNetworkBlock">
+    <div class="flex flex-wrap">
+        <div *ngIf="network.addrUtilization || hasAddressPools">
+            <app-utilization-stats-chart title="Total" leaseType="na" [network]="network"></app-utilization-stats-chart>
+        </div>
+        <div *ngIf="network.pdUtilization || hasPrefixPools">
+            <app-utilization-stats-chart title="Total" leaseType="pd" [network]="network"></app-utilization-stats-chart>
+        </div>
+        <ng-container class="flex flex-wrap" *ngIf="localSubnets && localSubnets.length > 1">
+            <ng-container *ngFor="let localSubnet of localSubnets">
+                <div *ngIf="localSubnet.pools?.length > 0">
+                    <app-utilization-stats-chart
+                        [title]="localSubnet.appName"
+                        leaseType="na"
+                        [network]="localSubnet"
+                    ></app-utilization-stats-chart>
+                </div>
+                <div *ngIf="localSubnet.prefixDelegationPools?.length > 0">
+                    <app-utilization-stats-chart
+                        [title]="localSubnet.appName"
+                        leaseType="pd"
+                        [network]="localSubnet"
+                    ></app-utilization-stats-chart>
+                </div>
+            </ng-container>
+        </ng-container>
+    </div>
+    <p-divider></p-divider>
+    <span class="font-italic text-sm"
+        >Statistics collected at {{ network.statsCollectedAt | date: 'short' | placeholder: 'never' }}</span
+    >
+</ng-container>
+<ng-template #noNetworkBlock>
+    <div>Statistics data unavailable.</div>
+</ng-template>

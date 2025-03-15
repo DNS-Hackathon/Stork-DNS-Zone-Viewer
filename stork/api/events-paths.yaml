@@ -1,0 +1,41 @@
+  /events:
+    get:
+      summary: Get list of most recent events.
+      description: >-
+        A list of most recent events is returned in items field accompanied by total count
+        which indicates total available number of events.
+      operationId: getEvents
+      tags:
+        - Events
+      parameters:
+        - $ref: '#/parameters/paginationStartParam'
+        - $ref: '#/parameters/paginationLimitParam'
+        - name: level
+          in: query
+          description: Show all levels (0), warning and errors (1), errors only (2).
+          type: integer
+        - name: machine
+          in: query
+          description: Machine ID.
+          type: integer
+        - name: appType
+          in: query
+          description: App type, e.g. 'kea' or 'bind9'.
+          type: string
+        - name: daemonType
+          in: query
+          description: Daemon types, e.g. 'named', 'dhcp4', 'dhcp6', 'ca'.
+          type: string
+        - name: user
+          in: query
+          description: User ID.
+          type: integer
+      responses:
+        200:
+          description: List of events.
+          schema:
+            $ref: "#/definitions/Events"
+        default:
+          description: generic error response
+          schema:
+            $ref: "#/definitions/ApiError"

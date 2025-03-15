@@ -1,0 +1,59 @@
+:host ::ng-deep
+    // When PrimeNG form component has full width, apply the same style for inner input element.
+    .w-full.p-component input, .w-full.p-chips > .p-inputtext
+        width: 100%
+        max-width: var(--max-form-width)
+
+    // Override default flex min-width so that text items like
+    // p-chips could shrink.
+    .flex-auto, .md\:flex-auto
+        min-width: 0
+
+    // Minimize horizontal padding for small text buttons.
+    .p-button-sm.p-button.p-button-text
+        width: auto
+        padding-left: 0.125rem
+        padding-right: 0.125rem
+
+    // When small button is inside flex container that has .align-items-end class applied,
+    // add some bottom margin to align the button vertically with other higher flex items.
+    .align-items-end >
+        .p-button-sm, .p-element:has(> .p-button-sm)
+            margin-bottom: 0.25rem
+
+// Add border between shared parameters.
+.shared-parameter-wrapper:not(:last-child)
+    border-bottom: 1px solid var(--surface-border)
+
+.shared-parameter-form
+    // PrimeNG wraps form input components inside of .p-inputwrapper class.
+    // Let them take full available width inside of .shared-parameter-form parent block.
+    & > .p-inputwrapper
+        width: 100%
+    // When .shared-parameter-form block has checkbox form component inside,
+    // add little padding for better checkbox vertical alignment.
+    &:has(.p-checkbox)
+        padding-top: 0.5rem
+        padding-bottom: 0.5rem
+
+.server-tag
+    // When server tag is displayed next to the form input (not above),
+    // prevent the tag from shrinking.
+    @media screen and (min-width: 768px)
+        // Set flex item to only grow, not shrink.
+        // flex-basis is set to 10rem.
+        flex: 1 0 10rem
+
+        &:not(.boolean-form)
+            // Prevent from shrinking more than the content of the tag.
+            max-width: fit-content
+
+// Utility class, takes 20% of available width.
+.w-20-perc
+    width: 20%
+
+// Responsive utility classes. They have effect for viewports wider than 767px (medium breakpoint in Primeflex).
+@media screen and (min-width: 768px)
+    // Utility class, takes 20% of available width.
+    .md\:w-20-perc
+        width: 20%

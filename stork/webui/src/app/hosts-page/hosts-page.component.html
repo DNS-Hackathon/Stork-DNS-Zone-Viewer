@@ -1,0 +1,68 @@
+<app-breadcrumbs [items]="breadcrumbs">
+    <div page-help>
+        <p>
+            This page displays a list of host reservations in the network. Kea can store host reservations in either a
+            configuration file or a database. Reservations are retrieved at regular intervals, which can be configured
+            in the Settings panel under the Configuration menu in the top bar. Kea must have the
+            <a href="https://kea.readthedocs.io/en/latest/arm/hooks.html#host-cmds-host-commands"
+                >host_cmds hook library</a
+            >
+            loaded to retrieve host reservations stored in a database (MySQL or PostgreSQL).
+        </p>
+        <p>Kea supports the following host reservation identifier types:</p>
+        <ul>
+            <li><b>hw-address</b> - MAC address,</li>
+            <li><b>client-id</b> - usable in IPv4 only,</li>
+            <li><b>duid</b> - typically used in IPv6, although also usable in IPv4 if clients support it,</li>
+            <li><b>flex-id</b>, and</li>
+            <li><b>circuit-id</b>.</li>
+        </ul>
+    </div>
+</app-breadcrumbs>
+
+<p-tabMenu [model]="tabs" [activeItem]="tabs[activeTabIndex]" [scrollable]="true" styleClass="mb-2">
+    <ng-template pTemplate="item" let-item let-i="index">
+        <a
+            role="menuitem"
+            pRipple
+            [routerLink]="item.routerLink"
+            [queryParams]="i === 0 ? hostsTableComponent?.validFilter : null"
+            class="p-ripple p-element p-menuitem-link"
+        >
+            <div class="flex justify-content-between">
+                <div class="p-menuitem-icon" [ngClass]="item.icon" *ngIf="item.icon"></div>
+                <div class="p-menuitem-text">
+                    <b>{{ item.label }}</b>
+                </div>
+                <div *ngIf="i !== 0" class="pi pi-times close-tab-btn" (click)="closeHostTab($event, i)"></div>
+            </div>
+        </a>
+    </ng-template>
+</p-tabMenu>
+
+<div>
+    <div *ngIf="activeTabIndex !== 0" [ngSwitch]="openedTabs[activeTabIndex - 1].tabType" class="p-component">
+        <app-host-tab
+            *ngSwitchCase="HostTabType.Display"
+            [host]="openedTabs[activeTabIndex - 1].tabSubject"
+            (hostEditBegin)="onHostEditBegin(openedTabs[activeTabIndex - 1].tabSubject)"
+            (hostDelete)="onHostDelete(openedTabs[activeTabIndex - 1].tabSubject)"
+        ></app-host-tab>
+        <app-host-form
+            [form]="openedTabs[activeTabIndex - 1].state"
+            (formDestroy)="onHostFormDestroy($event)"
+            (formSubmit)="onHostFormSubmit($event)"
+            (formCancel)="onHostFormCancel(0)"
+            *ngSwitchCase="HostTabType.New"
+        ></app-host-form>
+        <app-host-form
+            [form]="openedTabs[activeTabIndex - 1].state"
+            [hostId]="openedTabs[activeTabIndex - 1].tabSubject.id"
+            (formDestroy)="onHostFormDestroy($event)"
+            (formSubmit)="onHostFormSubmit($event)"
+            (formCancel)="onHostFormCancel(openedTabs[activeTabIndex - 1].tabSubject.id)"
+            *ngSwitchCase="HostTabType.Edit"
+        ></app-host-form>
+    </div>
+    <app-hosts-table #hostsTableComponent [hidden]="activeTabIndex !== 0"></app-hosts-table>
+</div>

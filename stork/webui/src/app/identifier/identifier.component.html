@@ -1,0 +1,23 @@
+<span class="flex align-items-center flex-wrap" [ngClass]="styleClass">
+    <a *ngIf="link.length !== 0; else identifierTemplate" routerLink="{{ link }}">
+        <ng-container *ngTemplateOutlet="identifierTemplate"></ng-container>
+    </a>
+    <ng-template #identifierTemplate>
+        <ng-container *ngIf="hexId === null; else identifierTextTemplate">
+            {{ condWrap('unrecognized hex string') }}
+        </ng-container>
+        <ng-template #identifierTextTemplate>
+            {{ hexFormat ? condWrap(hexId) : condWrap(textId) }}
+        </ng-template>
+    </ng-template>
+    <p-toggleButton
+        *ngIf="textId !== null"
+        onLabel="text"
+        offLabel="hex"
+        class="ml-1"
+        styleClass="p-badge"
+        [(ngModel)]="hexFormat"
+        ngDefaultControl
+    >
+    </p-toggleButton>
+</span>

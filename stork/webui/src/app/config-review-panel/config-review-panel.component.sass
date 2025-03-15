@@ -1,0 +1,70 @@
+:host ::ng-deep .config-review-pager .p-paginator
+  border: 0
+  margin-top: 10px
+
+:host ::ng-deep .p-togglebutton .p-button-label
+  // Prevent to resize button while label is changed.
+  min-width: 5rem
+
+.review-header
+  // Uses full width of the panel.
+  width: 100%
+  // Enables the flex features.
+  display: flex
+  // The creation date and buttons will be placed at the ends of the header.
+  justify-content: space-between
+  // The buttons will be on the right, even if no report has been generated.
+  flex-direction: row-reverse
+  // Aligns the summary and buttons to the text center.
+  align-items: center
+
+#review-summary-div
+  // The summary is aligned second because it may not exist.
+  order: 2
+
+#review-buttons
+  // Buttons are aligned first. It ensures they will be on the right side even
+  // if the header doesn't have the summary. 
+  order: 1
+  // Puts all buttons in a line.
+  display: flex
+  // Defines the horizontal spacing between buttons.
+  column-gap: 0.5rem
+  // Align the switch button and text to the vertical center.
+  align-items: center
+  // Use the same height for all buttons.
+  flex-shrink: 0
+
+.checker-panel-wrapper
+  // Workaround for problem with displaying the overview panel out of the
+  // viewport. The panel's content is dynamically loaded; initially, it only
+  // contains a loading icon. The panel width is set based on this initial
+  // content. After loading the checkers, the overview panel is extended on
+  // the right side. It causes the panel may be displayed out of the viewport.
+  // The initial width is fixed to a value near to expected target value to
+  // prevent this situation.
+  min-width: 15rem
+
+:host ::ng-deep .p-dataview.p-dataview-list
+  .p-dataview-content > .p-grid > div
+    border-top: none
+  .p-dataview-content > .p-grid > div:not(:last-child)
+    border-bottom: none
+  .p-dataview-content > .p-grid > div:last-child
+    padding-bottom: 1em
+
+::ng-deep .p-overlaypanel.checker-panel
+  @media screen and (max-width: 1199px)
+    // For screens more narrow than 1200px there is not enough space on the right to fit
+    // the overlay panel. Force align it to the left edge of the viewport to prevent content
+    // overlapping.
+    left: 1rem !important
+
+  .p-overlaypanel-content
+    // Set max-width to prevent horizontal overflow on smaller screens.
+    max-width: calc(90vw - 1rem)
+
+  // Hide the default chevron pointing to the target,
+  // because it might be misleading for smaller screens.
+  &::after, &::before
+    content: none

@@ -1,0 +1,57 @@
+:host ::ng-deep
+    .p-float-label, .mixed-content, .form-w-full
+        // Give full width but prevent from becoming too wide.
+        width: 100%
+        max-width: var(--max-form-width)
+
+    .p-float-label
+        .p-component.p-inputwrapper, textarea, .p-inputtext, .p-element.p-inputwrapper, .p-component.p-inputnumber
+            // Apply the same style for form inputs inside of .p-float-label span.
+            width: 100%
+            max-width: var(--max-form-width)
+
+    .mixed-content
+        // .mixed-content is a flex container which contains more than one form input.
+        display: flex
+
+        // Flex items for PD and PSID forms. Prefix is wider and shrinkable.
+        // Prefix len doesn't shrink and takes less space.
+        .prefix
+            flex: 1 1 16rem
+        .prefix-len
+            flex: 1 0 4rem
+
+    .option-field
+        border-style: dashed
+        border-width: 1px
+
+    .empty-option-tag
+        &:hover
+            cursor: help
+            background: var(--surface-300)
+
+    .p-togglebutton.p-button
+        // Overwrite default PrimeNG toggle button style.
+        // PrimeNG Aura theme style of toggle button doesn't match with
+        // dashed border of .option-field class.
+        // This should be revised in the future,
+        // whether custom style is still necessary.
+        background: var(--surface-0)
+        border-color: var(--surface-0)
+
+        &.p-highlight
+            background: var(--surface-200)
+            border-color: var(--surface-200)
+
+            &:hover
+                background: var(--surface-300)
+                border-color: var(--surface-300)
+
+            & .p-button-label
+                background: inherit
+                border-color: inherit
+                box-shadow: none
+
+        .p-button-label
+            // Don't wrap button label when viewport shrinks.
+            white-space: nowrap

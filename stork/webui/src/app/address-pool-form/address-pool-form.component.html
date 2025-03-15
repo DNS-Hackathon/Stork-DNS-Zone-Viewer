@@ -1,0 +1,84 @@
+<div [formGroup]="formGroup">
+    <p-fieldset legend="Address Range" styleClass="mt-4">
+        <div class="flex mt-4 mb-2 align-items-center flex-wrap gap-2 row-gap-5" formGroupName="range">
+            <div class="p-float-label flex-auto">
+                <input [id]="uuids.poolStart" pInputText formControlName="start" class="w-full" />
+                <label [for]="uuids.poolStart">First Address</label>
+            </div>
+            <div>:</div>
+            <div class="p-float-label flex-auto">
+                <input [id]="uuids.poolEnd" pInputText formControlName="end" class="w-full" />
+                <label [for]="uuids.poolEnd">Last Address</label>
+            </div>
+        </div>
+        <ng-container *ngFor="let control of ['start', 'end']">
+            <small
+                *ngIf="
+                    formGroup.get('range').get(control).invalid &&
+                    (formGroup.get('range').get(control).dirty || formGroup.get('range').get(control).touched) &&
+                    formGroup.get('range').get(control).hasError('ipInSubnet')
+                "
+                class="p-error block"
+                >{{ formGroup.get('range').get(control).errors.ipInSubnet }}
+            </small>
+        </ng-container>
+        <ng-container *ngFor="let err of ['addressBounds', 'ipRangeOverlaps']">
+            <small *ngIf="formGroup.get('range').invalid && formGroup.get('range').hasError(err)" class="p-error block"
+                >{{ formGroup.get('range').errors[err] }}
+            </small>
+        </ng-container>
+    </p-fieldset>
+    <p-fieldset legend="Assignments" styleClass="mt-4">
+        <div class="mt-4">
+            <span class="p-float-label mt-4 mb-2">
+                <p-multiSelect
+                    [inputId]="uuids.selectedDaemons"
+                    optionLabel="label"
+                    optionValue="id"
+                    [options]="selectableDaemons"
+                    formControlName="selectedDaemons"
+                    display="chip"
+                    [showToggleAll]="false"
+                    styleClass="w-full adaptive-chips-background"
+                    (onChange)="onDaemonsChange($event)"
+                >
+                </p-multiSelect>
+                <label [for]="uuids.selectedDaemons">DHCP Servers</label>
+            </span>
+            <small
+                *ngIf="
+                    formGroup.get('selectedDaemons').invalid &&
+                    (formGroup.get('selectedDaemons').dirty || formGroup.get('selectedDaemons').touched)
+                "
+                class="p-error block"
+                >At least one server must be selected.
+            </small>
+        </div>
+    </p-fieldset>
+    <p-fieldset legend="Pool DHCP Parameters" styleClass="mt-4">
+        <app-shared-parameters-form [servers]="servers" [formGroup]="formGroup.get('parameters')">
+        </app-shared-parameters-form>
+    </p-fieldset>
+    <p-fieldset [formGroup]="formGroup.get('options')" legend="Pool DHCP Options" styleClass="mt-4">
+        <div class="flex mt-2 pb-4">
+            <p-checkbox formControlName="unlocked" [binary]="true"> </p-checkbox>
+            <div class="flex ml-2 font-semibold">Unlock setting DHCP options for individual servers.</div>
+        </div>
+        <ng-container *ngFor="let optionSet of formGroup.get('options.data')?.controls; let i = index">
+            <div *ngIf="i === 0 || formGroup.get('options.unlocked')?.value" class="mb-3 mt-3">
+                <div *ngIf="formGroup.get('options.unlocked')?.value" class="pb-5">
+                    <p-divider *ngIf="formGroup.get('options.data')?.length > 1" align="center">
+                        <p-tag [severity]="getServerTagSeverity(i)">
+                            {{ servers[i] }}
+                        </p-tag>
+                    </p-divider>
+                </div>
+                <app-dhcp-option-set-form
+                    [v6]="v6"
+                    [formArray]="optionSet"
+                    (optionAdd)="onOptionAdd(i)"
+                ></app-dhcp-option-set-form>
+            </div>
+        </ng-container>
+    </p-fieldset>
+</div>

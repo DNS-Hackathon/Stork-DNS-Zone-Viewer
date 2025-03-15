@@ -1,0 +1,26 @@
+#!/bin/sh
+
+set -eu
+
+case "$1" in
+    0) # This is a yum/dnf remove.
+        has_active_systemd=0
+        if command -v systemctl > /dev/null; then
+            status=$(systemctl is-system-running || true)
+            if [ "${status}" = "running" ] || [ "${status}" = "degraded" ] || [ "${status}" = "maintenance" ]; then
+                has_active_systemd=1
+            fi
+        fi
+
+        if [ $has_active_systemd -eq 1 ]; then
+            systemctl disable isc-stork-agent
+            systemctl stop isc-stork-agent
+        fi
+
+        # Remove stork-agent from any extra groups like e.g. bind.
+        usermod -G "" stork-agent
+        ;;
+    1)  # This is a yum/dnf upgrade.
+        # Do nothing.
+        ;;
+esac

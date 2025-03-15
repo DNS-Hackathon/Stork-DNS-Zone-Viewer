@@ -1,0 +1,166 @@
+// Breakpoint for responsive view.
+// It's the minimum viewport width at which Stork logo and "Stork" anchor text
+// of the .login-screen__logo container fit in one line.
+$layout-breakpoint: 640px
+
+.login-screen__wrapper
+    // Use the full page width and height.
+    position: absolute
+    top: 0
+    right: 0
+    bottom: 0
+    left: 0
+
+.login-screen
+    // Blue background.
+    background-color: var(--blue-700)
+    // White text.
+    color: var(--gray-0)
+    // Enable flex.
+    display: flex
+    // Organize the items vertically.
+    flex-direction: column
+    // Center the items horizontally.
+    align-items: center
+    // Use full width.
+    width: 100%
+    // Use full height but allow to expand over if needed.
+    min-height: 100%
+
+.login-screen__content
+    // Enable flex.
+    display: flex
+    // Organize the items vertically.
+    flex-direction: column
+    // Center the items horizontally.
+    align-items: center
+    // Use full width.
+    width: 100%
+    // Responsive view for smaller screens.
+    @media screen and (max-width: $layout-breakpoint)
+        // Leave little space on the left and right for smaller screens.
+        width: 95%
+
+.login-screen__logo
+    // Use fancy font.
+    font-family: 'Mansalva'
+    // Don't use any particular variant to keep consistency with the logo on
+    // the project webpage.
+    font-variant: none
+    // Use big font - but the text should be lower than logo.
+    font-size: 10rem
+    // Set the top spacing.
+    margin-top: 5vh
+    // Enable flex.
+    display: flex
+    // Center align items.
+    align-items: center
+    // Responsive view for smaller screens.
+    @media screen and (max-width: $layout-breakpoint)
+        // Smaller font size for smaller screens.
+        font-size: 7rem
+        // Change flex container direction to column.
+        flex-direction: column
+
+    a
+        // Override default color for links.
+        color: var(--gray-0) !important
+        // Center logo text vertically.
+        vertical-align: middle
+        // Short spacing between icon and text.
+        margin-left: 2rem
+        // Responsive view for smaller screens.
+        @media screen and (max-width: $layout-breakpoint)
+            // Margin is not needed because of column layout for smaller screens.
+            margin-left: 0
+    img
+        // Center logo icon vertically.
+        vertical-align: middle
+
+.login-screen__version
+    // Make version indistinctive.
+    font-style: italic
+
+.login-screen-intro
+    // Bigger text.
+    font-size: 2rem
+    // Small space between version and intro text.
+    margin-top: 1rem
+    a
+        // Override default color for links.
+        color: var(--gray-0) !important
+        // Add underline to links.
+        text-decoration: underline
+
+.login-screen__authentication
+    // Add top spacing.
+    margin-top: 10vh
+    // Use the limited, fixed width.
+    width: 60%
+
+.login-screen__authentication-selector
+    .p-float-label
+        // Limit the maximum width of the dropdown to fit inputs that are below.
+        max-width: 400px
+    p
+        // Justify the authentication description.
+        text-align: justify
+
+:host ::ng-deep .login-screen__authentication-inputs
+    // Limit the maximum width of the input area to be convenient for typing.
+    max-width: 400px
+    // Center the input area.
+    margin: auto
+
+    input, button, .password-component
+        // Expand to full width.
+        width: 100%
+
+    & > div:first-child
+        // Make a space for floating label.
+        margin-bottom: 2rem
+        margin-top: 2rem
+    & > div:not(:first-child)
+        // Spacing between inputs.
+        margin-top: 8px
+    & > div:last-child
+        // Spacing between button and above input.
+        margin-top: 18px
+    ::ng-deep .p-float-label input:focus ~ label, .p-float-label input.p-filled ~ label, .p-float-label .p-inputwrapper-focus ~ label, .p-float-label .p-inputwrapper-filled ~ label
+        // The default color is gray. Use white to better contrast with a blue background.
+        color: var(--gray-0)
+
+.login-screen__authentication-loader
+    // Center the loader spinner horizontally.
+    display: block
+    text-align: center
+
+.login-screen__authentication-selector
+    // Center the selector and description horizontally.
+    display: flex
+    flex-direction: column
+    align-items: center
+    img
+        // Icon dimensions.
+        height: 42px
+        width: 42px
+        // Keep ratio.
+        object-fit: contain
+
+.login-screen__welcome
+    // Add top spacing.
+    margin-top: 5vh
+    // Fit the content in case of a short welcome.
+    width: fit-content
+    // Do not extend beyond the 80% of the screen width.
+    max-width: 80%
+
+.login-screen__footer
+    // Center horizontally and align to the bottom.
+    margin: auto 0 5px 0
+    // A little spacing on top.
+    padding-top: 8px
+    // Responsive view for smaller screens.
+    @media screen and (max-width: $layout-breakpoint)
+        // Apply regular margin for smaller screens.
+        margin: 0.5rem

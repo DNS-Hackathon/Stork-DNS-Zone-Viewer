@@ -1,0 +1,20 @@
+<!-- Config -->
+<p-tag
+    *ngIf="dataSource === 'config'"
+    styleClass="datasource--config"
+    pTooltip="This host is specified in the server's configuration file."
+    tooltipPosition="bottom"
+    value="config"
+></p-tag>
+
+<!-- API -->
+<p-tag
+    *ngIf="dataSource === 'api'"
+    styleClass="datasource--hostcmds"
+    pTooltip="This host is specified in the server's host database."
+    tooltipPosition="bottom"
+    value="host_cmds"
+></p-tag>
+
+<!-- Unknown -->
+<p-tag *ngIf="dataSource !== 'config' && dataSource !== 'api'">{{ dataSource }}</p-tag>

@@ -1,0 +1,63 @@
+<p-table
+    *ngIf="rows.length > 0; else noRowsBlock"
+    [value]="rows"
+    dataKey="name"
+    styleClass="cascaded-parameters-table max-w-100vw"
+>
+    <ng-template pTemplate="header">
+        <tr>
+            <th *ngIf="showCascaded" class="w-3rem"></th>
+            <th></th>
+            <th *ngFor="let dataSet of data">
+                {{ dataSet.name }}
+            </th>
+        </tr>
+    </ng-template>
+    <ng-template pTemplate="body" let-row let-expanded="expanded">
+        <tr class="text-blue-500">
+            <td *ngIf="showCascaded">
+                <button
+                    type="button"
+                    pButton
+                    pRipple
+                    [pRowToggler]="row"
+                    class="p-button-text p-button-rounded p-button-plain mr-2"
+                    [icon]="expanded ? 'pi pi-chevron-down' : 'pi pi-chevron-right'"
+                ></button>
+            </td>
+            <td>
+                <span>{{ row.name }}</span>
+            </td>
+            <td *ngFor="let parameter of row.parameters">
+                <app-parameter-view [parameter]="parameter.effective"></app-parameter-view>
+            </td>
+        </tr>
+    </ng-template>
+    <ng-template pTemplate="rowexpansion" let-row>
+        <tr *ngFor="let level of levels; let i = index">
+            <td></td>
+            <td class="pl-3 sm:pl-6">
+                <span>
+                    {{ level }}
+                </span>
+            </td>
+            <td *ngFor="let parameter of row.parameters; let j = index">
+                <app-parameter-view [parameter]="row.parameters[j].values[i]"></app-parameter-view>
+                <span
+                    *ngIf="level === row.parameters[j].level"
+                    class="fa-solid fa-check ml-2 sm:ml-3 text-green-600"
+                    pTooltip="Marks an effective value."
+                ></span>
+            </td>
+        </tr>
+    </ng-template>
+</p-table>
+<ng-template #noRowsBlock>
+    <!--
+     This small margin is necessary to have the empty placeholder at the same
+     level and the same height as in the p-tree component. It improves the look
+     when this empty component and the empty p-tree component are displayed
+     side-by-side.
+    -->
+    <span class="block mt-1 mb-1">No parameters configured.</span>
+</ng-template>

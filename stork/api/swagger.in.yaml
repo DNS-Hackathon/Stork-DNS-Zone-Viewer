@@ -1,0 +1,251 @@
+---
+swagger: "2.0"
+info:
+  description: An API for Stork
+  title: Stork API
+  version: 2.1.1
+consumes:
+  - application/json
+produces:
+  - application/json
+schemes:
+- http
+basePath: /api
+
+securityDefinitions:
+  Token:
+    type: apiKey
+    in: header
+    name: Cookie
+
+security:
+  - Token: []
+
+paths:
+  /version:
+    get:
+      summary: Get version.
+      operationId: getVersion
+      security: []
+      tags:
+        - General
+      responses:
+        200:
+          description: Version of Stork
+          schema:
+            $ref: "#/definitions/Version"
+        default:
+          description: generic error response
+          schema:
+            $ref: "#/definitions/ApiError"
+
+  /software-versions:
+    get:
+      summary: Get information about ISC Kea, BIND9 and Stork software versions.
+      description: >-
+        Returns detailed metadata for latest releases of
+        ISC Kea, BIND9 and Stork software. This is to provide
+        up-to-date ISC software releases so that it could be
+        compared with currently used releases.
+      operationId: getSoftwareVersions
+      security: []
+      tags:
+        - General
+      responses:
+        200:
+          description: Metadata for latest Kea, BIND9 and Stork software versions.
+          schema:
+            $ref: "#/definitions/AppsVersions"
+        default:
+          description: generic error response
+          schema:
+            $ref: "#/definitions/ApiError"
+
+  $include: users-paths.yaml
+  $include: services-paths.yaml
+  $include: dhcp-paths.yaml
+  $include: settings-paths.yaml
+  $include: search-paths.yaml
+  $include: events-paths.yaml
+  $include: dns-paths.yaml
+
+definitions:
+  Version:
+    type: object
+    required:
+      - version
+      - date
+    properties:
+      version:
+        type: string
+      date:
+        type: string
+
+  VersionDetails:
+    type: object
+    required:
+      - version
+      - releaseDate
+    properties:
+      version:
+        type: string
+      releaseDate:
+        type: string
+        format: date
+      eolDate:
+        type: string
+        format: date
+        x-nullable: true
+      esv:
+        type: string
+      status:
+        type: string
+      major:
+        type: integer
+      minor:
+        type: integer
+      range:
+        type: string
+
+  AppVersionMetadata:
+    type: object
+    required:
+      - currentStable
+    properties:
+      latestDev:
+        $ref: '#/definitions/VersionDetails'
+      currentStable:
+        type: array
+        items:
+          $ref: '#/definitions/VersionDetails'
+      latestSecure:
+        type: array
+        items:
+          $ref: '#/definitions/VersionDetails'
+      sortedStableVersions:
+        type: array
+        items:
+          type: string
+
+  VersionsDataSource:
+    type: string
+    enum: &VERSIONSDATASOURCE
+      - "offline"
+      - "online"
+
+  AppsVersions:
+    type: object
+    required:
+      - bind9
+      - kea
+      - stork
+      - date
+    properties:
+      bind9:
+        $ref: '#/definitions/AppVersionMetadata'
+      kea:
+        $ref: '#/definitions/AppVersionMetadata'
+      stork:
+        $ref: '#/definitions/AppVersionMetadata'
+      date:
+        type: string
+        format: date
+      dataSource:
+        enum: *VERSIONSDATASOURCE
+
+  ApiError:
+    type: object
+    required:
+      - message
+    properties:
+      message:
+        type: string
+
+  principal:
+    type: string
+
+  DNSAppType:
+    type: string
+    enum: &DNSAPPTYPE
+      - bind9
+
+  DNSClass:
+    type: string
+    enum: &DNSCLASS
+      - IN
+      - CH
+      - HS
+      - ANY
+
+  DNSZoneType:
+    type: string
+    enum: &DNSZONETYPE
+      - builtin
+      - delegation-only
+      - forward
+      - hint
+      - mirror
+      - primary
+      - redirect
+      - secondary
+      - static-stub
+      - stub
+
+  $include: users-defs.yaml
+  $include: services-defs.yaml
+  $include: kea-config-defs.yaml
+  $include: dhcp-defs.yaml
+  $include: settings-defs.yaml
+  $include: search-defs.yaml
+  $include: events-defs.yaml
+  $include: dns-defs.yaml
+
+parameters:
+  paginationStartParam:
+    name: start
+    in: query
+    description: First record to retrieve.
+    type: integer
+
+  paginationLimitParam:
+    name: limit
+    in: query
+    description: Number of records to retrieve.
+    type: integer
+
+  filterTextParam:
+    name: text
+    in: query
+    description: >-
+      Filtering text, e.g. hostname for the machines
+      or version for the apps.
+    type: string
+
+  dnsAppType:
+    name: appType
+    in: query
+    description: >-
+      Limit returned list of entities (e.g. zones) to the ones served by app of a
+      given type. The app should be one of the supported DNS servers.
+    type: string
+    enum: *DNSAPPTYPE
+
+  dnsClass:
+    name: class
+    in: query
+    description: >-
+      Limit returned list of entities (e.g. zones) to the ones of a given class.
+    type: string
+    enum: *DNSCLASS
+
+  dnsZoneType:
+    name: zoneType
+    in: query
+    description: >-
+      Limit returned list of entities (e.g. zones) to the ones of a given type.
+      Multiple zone types can be specified. If unspecified, all zone types are returned.
+    type: array
+    items:
+      type: string
+      enum: *DNSZONETYPE
+    collectionFormat: multi

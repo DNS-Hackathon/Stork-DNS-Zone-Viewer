@@ -1,0 +1,25 @@
+  /records:
+    get:
+      summary: Search for records of different types.
+      description: >-
+        A set of lists of records is returned. Each list is made of
+        items field accompanied by total count. Currently the
+        following lists are returned: subnets, shared networks, hosts,
+        machines, applications, users and groups.
+      operationId: searchRecords
+      tags:
+        - Search
+      parameters:
+        - name: text
+          in: query
+          description: Search for records containing the given text.
+          type: string
+      responses:
+        200:
+          description: Search result. It includes several lists, one per record type.
+          schema:
+            $ref: "#/definitions/SearchResult"
+        default:
+          description: generic error response
+          schema:
+            $ref: "#/definitions/ApiError"

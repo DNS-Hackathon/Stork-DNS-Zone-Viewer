@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Stork Environment Simulator</title>
+  <script src="https://unpkg.com/vue@2.6.14"></script>
+  <script src="https://unpkg.com/axios@0.25.0/dist/axios.min.js"></script>
+  <link rel="stylesheet" href="https://unpkg.com/element-ui@2.15.6/lib/theme-chalk/index.css">
+  <script src="https://unpkg.com/element-ui@2.15.6/lib/index.js"></script>
+  <script src="https://unpkg.com/element-ui@2.15.6/lib/umd/locale/en.js"></script>
+  <script src="./index.js" defer></script>
+</head>
+<body>
+    <div id="app">
+        <el-menu :default-active="menuIndex" class="el-menu-demo" mode="horizontal" @select="menuSelect">
+            <el-menu-item index="manager">Services Manager</el-menu-item>
+            <el-menu-item index="dhcp">DHCP Traffic</el-menu-item>
+            <el-menu-item index="dns">DNS Traffic</el-menu-item>
+        </el-menu>
+
+        <div style="height: 30px;">
+        </div>
+
+        <div v-if="menuIndex == 'manager'">
+            <el-table :data="services">
+                <el-table-column label="Machine" min-width="4em">
+                    <template slot-scope="scope">
+                        {{ scope.row.machine }}
+                    </template>
+                </el-table-column>
+                <el-table-column label="Service" min-width="4em">
+                    <template slot-scope="scope">
+                        {{ scope.row.name }}
+                    </template>
+                </el-table-column>
+                <el-table-column label="Status" min-width="4em">
+                    <template slot-scope="scope">
+                        {{ scope.row.statename }}
+                    </template>
+                </el-table-column>
+                <el-table-column label="Action" min-width="8em">
+                    <template slot-scope="scope">
+                        <el-button type="success" v-if="scope.row.statename != 'RUNNING'" v-on:click="updateService(scope.$index, 'start')">Start</el-button>
+                        <el-button type="danger" v-if="scope.row.statename == 'RUNNING'" v-on:click="updateService(scope.$index, 'stop')">Stop</el-button>
+                    </template>
+            </el-table-column>
+            </el-table>
+        </div>
+
+        <el-table :data="subnets" v-if="menuIndex == 'dhcp'">
+            <el-table-column label="Shared Network" min-width="4em">
+                <template slot-scope="scope">
+                    {{ scope.row.sharedNetwork }}
+                </template>
+            </el-table-column>
+            <el-table-column label="Subnet" min-width="10em">
+                <template slot-scope="scope">
+                    {{ scope.row.subnet }}
+                </template>
+            </el-table-column>
+            <el-table-column label="Rate" min-width="12em">
+                <template slot-scope="scope">
+                    <el-input-number v-model="scope.row.rate"></el-input-number>
+                </template>
+            </el-table-column>
+            <el-table-column label="Clients" min-width="12em">
+                <template slot-scope="scope">
+                    <el-input-number v-model="scope.row.clients" :step="20"></el-input-number>
+                </template>
+            </el-table-column>
+            <el-table-column label="Action" min-width="8em">
+                <template slot-scope="scope">
+                    <div v-if="scope.row.clientClass != null">
+                        <el-button type="success" v-if="scope.row.state == 'stop'" v-on:click="updateSubnet(scope.$index, 'start')">Start</el-button>
+                        <el-button type="danger" v-if="scope.row.state == 'start'" v-on:click="updateSubnet(scope.$index, 'stop')">Stop</el-button>
+                    </div>
+                </template>
+            </el-table-column>
+        </el-table>
+
+        <el-table :data="applications" v-if="menuIndex == 'dns'">
+            <el-table-column label="DNS server" min-width="4em">
+                <template slot-scope="scope">
+                    {{ scope.row.address }}
+                </template>
+            </el-table-column>
+            <el-table-column label="Query Name" min-width="10em">
+                <template slot-scope="scope">
+                    <el-input v-model="scope.row.qname"></el-input>
+                </template>
+            </el-table-column>
+            <el-table-column label="Query Type" min-width="3em">
+                <template slot-scope="scope">
+                    <el-input v-model="scope.row.qtype"></el-input>
+                </template>
+            </el-table-column>
+            <el-table-column label="Query Transport" min-width="3em">
+                <template slot-scope="scope">
+                    <el-input v-model="scope.row.transport"></el-input>
+                </template>
+            </el-table-column>
+            <el-table-column label="Clients" min-width="8em">
+                <template slot-scope="scope">
+                    <el-input-number v-model="scope.row.clients" :max="50"></el-input-number>
+                </template>
+            </el-table-column>
+            <el-table-column label="Rate" min-width="8em">
+                <template slot-scope="scope">
+                    <el-input-number v-model="scope.row.rate"></el-input-number>
+                </template>
+            </el-table-column>
+            <el-table-column label="Query" min-width="4em">
+                <template slot-scope="scope">
+                    <el-button type="success" v-on:click="query(scope.$index)">Dig</el-button>
+                </template>
+            </el-table-column>
+            <el-table-column label="Stream" min-width="4em">
+                <template slot-scope="scope">
+                    <el-button type="success" v-if="scope.row.state == 'stop'" v-on:click="perf(scope.$index, 'start')">Start</el-button>
+                    <el-button type="danger" v-if="scope.row.state == 'start'" v-on:click="perf(scope.$index, 'stop')">Stop</el-button>
+                </template>
+            </el-table-column>
+        </el-table>
+    </div>
+</body>
+</html>

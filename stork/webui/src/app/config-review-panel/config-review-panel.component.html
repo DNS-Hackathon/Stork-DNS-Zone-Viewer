@@ -1,0 +1,115 @@
+<p-dataView
+    [value]="reports"
+    [lazy]="true"
+    (onLazyLoad)="refreshDaemonConfigReports($event)"
+    [paginator]="true"
+    [alwaysShowPaginator]="false"
+    [rows]="limit"
+    [first]="start"
+    [totalRecords]="total"
+    pageLinkSize="3"
+    [showCurrentPageReport]="true"
+    [loading]="loading"
+    layout="list"
+    currentPageReportTemplate="{first} - {last} of {totalRecords}"
+>
+    <ng-template pTemplate="header">
+        <div class="review-header flex-wrap sm:flex-nowrap">
+            <div id="review-summary-div" *ngIf="review" class="font-normal mt-2 sm:mt-0">
+                <span class="font-bold"> {{ totalIssues }}</span> issue{{ totalIssues !== 1 ? 's' : '' }} found in
+                {{ totalReports }} report{{ totalReports !== 1 ? 's' : '' }} at
+                <span class="font-bold">{{ review.createdAt | localtime }} </span>
+            </div>
+            <div id="review-buttons" class="flex-wrap sm:flex-nowrap flex-shrink-1 sm:flex-shrink-0">
+                <p-toggleButton
+                    onLabel="Issues only"
+                    offLabel="All reports"
+                    onIcon="pi pi-filter"
+                    offIcon="pi pi-filter-slash"
+                    styleClass="p-button-sm mb-2 sm:my-0"
+                    [(ngModel)]="issuesOnly"
+                    (onChange)="refreshDaemonConfigReports($event)"
+                ></p-toggleButton>
+                <button
+                    #selectCheckersPanelTarget
+                    pButton
+                    type="button"
+                    label="Checkers"
+                    class="p-button-sm mb-2 sm:my-0"
+                    icon="fa fa-cog"
+                    (click)="selectCheckersPanel.show($event, selectCheckersPanelTarget)"
+                ></button>
+                <button
+                    id="review-button"
+                    pButton
+                    #selectCheckersPanelTarget
+                    *ngIf="!refreshFailed; else refreshFailedElse"
+                    type="button"
+                    label="Run review"
+                    class="p-button-sm mb-2 sm:my-0"
+                    icon="fas fa-tasks"
+                    [loading]="busy"
+                    (click)="runReview()"
+                ></button>
+                <ng-template #refreshFailedElse>
+                    <button
+                        id="refresh-button"
+                        pButton
+                        type="button"
+                        label="Refresh reports"
+                        class="p-button-sm mb-2 sm:my-0"
+                        icon="pi pi-refresh"
+                        [loading]="busy"
+                        (click)="refreshDaemonConfigReports(null)"
+                    ></button>
+                </ng-template>
+            </div>
+        </div>
+    </ng-template>
+    <ng-template pTemplate="list" let-reports>
+        <div class="w-full" *ngFor="let report of reports">
+            <p-divider styleClass="report-divider" type="solid" align="left">
+                <p-tag [severity]="!report.content ? 'success' : ''">
+                    {{ report.checker }}
+                </p-tag>
+            </p-divider>
+            <div class="ml-4 mr-4">
+                <span
+                    class="fas text-sm pr-2"
+                    [ngClass]="{
+                        'fa-pencil-alt': !!report.content,
+                        'fa-check-double': !report.content,
+                    }"
+                >
+                </span>
+                <span class="font-italic text-sm text-color">
+                    <app-event-text [text]="report.content ?? 'No issues found.'"></app-event-text>
+                </span>
+            </div>
+        </div>
+    </ng-template>
+    <ng-template let-report pTemplate="empty">
+        <span id="status-text" class="font-italic text-sm">
+            <ng-container *ngIf="refreshFailed"
+                >An error occurred while fetching the configuration review reports.</ng-container
+            >
+            <ng-container *ngIf="!refreshFailed && !!review"
+                >No configuration issues were found for this daemon.</ng-container
+            >
+            <ng-container *ngIf="!refreshFailed && !review"
+                >Configuration review was not performed for this daemon.</ng-container
+            >
+        </span>
+    </ng-template>
+</p-dataView>
+
+<p-overlayPanel #selectCheckersPanel showCloseIcon="true" styleClass="checker-panel">
+    <ng-template pTemplate>
+        <div class="checker-panel-wrapper">
+            <app-config-checker-preference-updater
+                [daemonID]="daemonId"
+                [minimal]="true"
+            ></app-config-checker-preference-updater>
+        </div>
+    </ng-template>
+</p-overlayPanel>

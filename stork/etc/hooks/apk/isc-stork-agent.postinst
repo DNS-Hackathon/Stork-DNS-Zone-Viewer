@@ -1,0 +1,27 @@
+#!/bin/sh
+
+set -eu
+
+# Create folders for storing certs and agent token, they should be available
+# to owner ie. stork-agent user.
+home_dir=/var/lib/stork-agent
+mkdir -p "${home_dir}/certs"
+mkdir -p "${home_dir}/tokens"
+chmod 700 "${home_dir}/certs"
+chmod 700 "${home_dir}/tokens"
+
+addgroup -S stork-agent >/dev/null
+adduser -h "${home_dir}" -D -S -H -g "Stork Agent User" -G stork-agent stork-agent >/dev/null
+
+# Add stork-agent user to BIND9 group so it can read its config files.
+if getent group named > /dev/null; then
+    addgroup stork-agent named
+fi
+
+# Add stork-agent user to kea so it can read its config files.
+if getent group kea > /dev/null; then
+    addgroup stork-agent kea
+fi
+
+# Change ownership of all folders and files in home dir to stork-agent user.
+chown -R stork-agent "${home_dir}"

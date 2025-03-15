@@ -1,0 +1,794 @@
+  /machines:
+    get:
+      summary: Get list of machines.
+      description: >-
+        It is possible to filter list of machines by several fields. It is also always paged.
+        Default page size is 10.
+        A list of machines is returned in items field accompanied by total count
+        which indicates total available number of records for given filtering
+        parameters.
+      operationId: getMachines
+      tags:
+        - Services
+      parameters:
+        - $ref: '#/parameters/paginationStartParam'
+        - $ref: '#/parameters/paginationLimitParam'
+        - $ref: '#/parameters/filterTextParam'
+        - name: app
+          in: query
+          description: Limit returned list of machines to these which provide given app, possible values 'bind' or 'kea'.
+          type: string
+        - name: authorized
+          in: query
+          description: Indicate if authorized or unauthorized machines should be returned.
+          type: boolean
+      responses:
+        200:
+          description: List of machines
+          schema:
+            $ref: "#/definitions/Machines"
+        default:
+          description: generic error response
+          schema:
+            $ref: "#/definitions/ApiError"
+    post:
+      summary: Add new machine.
+      description: >-
+        Register a new machine on the server. It requires two parameters: address and agentCSR.
+        It also requires agentToken and optionally serverToken depending on the registration method selected.
+      operationId: createMachine
+      # security disabled because anyone can add machine but it still requires
+      # either server token or manual authorization in web ui
+      security: []
+      tags:
+        - Services
+      parameters:
+        - name: machine
+          in: body
+          description: New machine basic information including CSR.
+          schema:
+            $ref: '#/definitions/NewMachineReq'
+      responses:
+        200:
+          description: Registration information
+          schema:
+            $ref: '#/definitions/NewMachineResp'
+        409:
+          description: Already registered
+          headers:
+            Location:
+              type: string
+        default:
+          description: generic error response
+          schema:
+            $ref: "#/definitions/ApiError"
+
+  /machines/directory:
+    get:
+      summary: Get a list of all machines' ids, addresses and/or names.
+      description: >-
+        Returns a list of all machines' ids, addresses and/or names. It excludes detailed
+        information about the machines to return reasonably compact information. Having
+        the machines' names and/or addresses is useful in the forms which require
+        validating user's input against the list of machines present in the system. It
+        may be also useful to create drop down lists holding the machines' addresses
+        or names. Each returned machine address or name is accompanied by its id.
+      operationId: getMachinesDirectory
+      tags:
+        - Services
+      responses:
+        200:
+          description: List of machine ids and names/addresses.
+          schema:
+            $ref: '#/definitions/Machines'
+        default:
+          description: 'generic error response'
+          schema:
+            $ref: '#/definitions/ApiError'
+
+  /machines/unauthorized/count:
+    get:
+      description: Returns a number of the unauthorized machines.
+      operationId: getUnauthorizedMachinesCount
+      tags:
+        - Services
+      responses:
+        200:
+          description: Holds a number of the unauthorized machines.
+          schema:
+            type: integer
+            description: A number of the unauthorized machines.
+        default:
+          description: generic error response
+          schema:
+            $ref: "#/definitions/ApiError"
+
+  /machines/apps/versions:
+    get:
+      summary: Returns authorized machines with ISC apps software versions.
+      description: >-
+        Returns a list of all machines' ids and ISC apps versions. It excludes detailed
+        information about the machines to return reasonably compact information. Having
+        the machines' names and/or apps versions is useful for assessment of ISC software
+        versions being used on machines that are monitored by Stork.
+      operationId: getMachinesAppsVersions
+      tags:
+        - Services
+      responses:
+        200:
+          description: List of machine ids and apps versions.
+          schema:
+            $ref: '#/definitions/Machines'
+        default:
+          description: 'generic error response'
+          schema:
+            $ref: '#/definitions/ApiError'
+
+  /machines/{id}:
+    get:
+      summary: Get machine by ID.
+      description: Get machine by the database specific ID.
+      operationId: getMachine
+      tags:
+        - Services
+      parameters:
+        - in: path
+          name: id
+          type: integer
+          required: true
+          description: Machine ID.
+      responses:
+        200:
+          description: A machine
+          schema:
+            $ref: "#/definitions/Machine"
+        default:
+          description: generic error response
+          schema:
+            $ref: "#/definitions/ApiError"
+    put:
+      summary: Update machine information.
+      description: Update machine information, e.g. IP address.
+      operationId: updateMachine
+      tags:
+        - Services
+      parameters:
+        - in: path
+          name: id
+          type: integer
+          required: true
+          description: Machine ID.
+        - name: machine
+          in: body
+          description: Machine details
+          schema:
+            $ref: '#/definitions/Machine'
+      responses:
+        200:
+          description: Machine information.
+          schema:
+            $ref: "#/definitions/Machine"
+        default:
+          description: generic error response
+          schema:
+            $ref: "#/definitions/ApiError"
+    delete:
+      summary: Delete machine by Id
+      operationId: deleteMachine
+      tags:
+        - Services
+      parameters:
+        - in: path
+          name: id
+          type: integer
+          required: true
+          description: Machine ID.
+      responses:
+        200:
+          description: Delete successful
+        default:
+          description: generic error response
+          schema:
+            $ref: "#/definitions/ApiError"
+
+  /machines/{id}/ping:
+    post:
+      summary: Check connectivity with machine.
+      operationId: pingMachine
+      security: []
+      tags:
+        - Services
+      parameters:
+        - in: path
+          name: id
+          type: integer
+          required: true
+          description: Machine ID.
+        - in: body
+          name: ping
+          description: >-
+            Body should contain proper server or agent token. If none
+            of them match the values stored by the server, the ping is
+            rejected.
+          schema:
+            type: object
+            properties:
+              serverToken:
+                type: string
+                description: Server access token.
+              agentToken:
+                type: string
+                description: Agent token.
+      responses:
+        200:
+          description: The response is empty.
+        default:
+          description: generic error response
+          schema:
+            $ref: "#/definitions/ApiError"
+
+  /machines/{id}/state:
+    get:
+      summary: Get machine's runtime state.
+      operationId: getMachineState
+      tags:
+        - Services
+      parameters:
+        - in: path
+          name: id
+          type: integer
+          required: true
+          description: Machine ID.
+      responses:
+        200:
+          description: Machine
+          schema:
+            $ref: "#/definitions/Machine"
+        default:
+          description: generic error response
+          schema:
+            $ref: "#/definitions/ApiError"
+
+  /machines/{id}/dump:
+    get:
+      summary: Dump machine configuration for troubleshooting purposes.
+      description: >-
+        The archive with the configuration dump can be used to diagnose service
+        problems offline. It's intended to easily download all necessary
+        information pertaining to a monitored machine from Stork and forward
+        it to the ISC Support Team.
+      operationId: getMachineDump
+      parameters:
+        - in: path
+          name: id
+          type: integer
+          required: true
+          description: Machine ID.
+      tags:
+        - Services
+      produces:
+        - application/octet-stream
+      responses:
+        200:
+          description: The archive with the configuration dump.
+          headers:
+            Content-Disposition:
+              type: string
+              description: "The attachment filename"
+            Content-Type:
+              type: string
+              description: The content type"
+          schema:
+            type: string
+            format: binary
+        default:
+          description: generic error response
+          schema:
+            $ref: "#/definitions/ApiError"
+
+  /machines-server-token:
+    get:
+      summary: Get server token for registering machines.
+      description: >-
+        The server token is used in server token machine registration.
+      operationId: getMachinesServerToken
+      tags:
+        - Services
+      responses:
+        200:
+          description: Current server token.
+          schema:
+            type: object
+            properties:
+              token:
+                type: string
+                description: Current server token.
+        default:
+          description: generic error response
+          schema:
+            $ref: "#/definitions/ApiError"
+    put:
+      summary: Regenerate server token.
+      description: >-
+        When there is probability that current server token
+        leaked then it should be regenerated.
+      operationId: regenerateMachinesServerToken
+      tags:
+        - Services
+      responses:
+        200:
+          description: Regenerated server token.
+          schema:
+            type: object
+            properties:
+              token:
+                type: string
+                description: Regenerated server token.
+        default:
+          description: generic error response
+          schema:
+            $ref: "#/definitions/ApiError"
+
+  /apps:
+    get:
+      summary: Get list of apps.
+      description: >-
+        It is possible to filter the list of apps by several fields. It is also always paged.
+        Default page size is 10.
+        A list of apps is returned in items field accompanied by total count
+        which indicates total available number of records for given filtering
+        parameters.
+      operationId: getApps
+      tags:
+        - Services
+      parameters:
+        - $ref: '#/parameters/paginationStartParam'
+        - $ref: '#/parameters/paginationLimitParam'
+        - $ref: '#/parameters/filterTextParam'
+        - name: app
+          in: query
+          description: Limit returned list of apps, possible values 'bind9' or 'kea'.
+          type: string
+      responses:
+        200:
+          description: List of apps
+          schema:
+            $ref: "#/definitions/Apps"
+        default:
+          description: generic error response
+          schema:
+            $ref: "#/definitions/ApiError"
+
+  /apps/directory:
+    get:
+      summary: Get a list of all apps' ids and names.
+      description: >-
+        Returns a list of all apps' ids and names. It excludes detailed information
+        about the apps to return reasonably compact information. Having the apps'
+        names is useful in the forms which require validating user's input against
+        the list of apps present in the system. It may be also useful to create
+        drop down lists holding the apps' names. Each returned name is accompanied
+        by its id.
+      operationId: getAppsDirectory
+      tags:
+        - Services
+      responses:
+        200:
+          description: List of app ids and names.
+          schema:
+            $ref: '#/definitions/Apps'
+        default:
+          description: 'generic error response'
+          schema:
+            $ref: '#/definitions/ApiError'
+
+  /apps/communication-issues:
+    get:
+      summary: Get a list of apps for which the server found communication issues.
+      description: >-
+        The returned list excludes the detailed information about the apps and
+        the daemons. The returned data primarily contains statistics about the
+        communication failures.
+      operationId: getAppsWithCommunicationIssues
+      tags:
+        - Services
+      responses:
+        200:
+          description: List of apps and daemons with communication statistics.
+          schema:
+            $ref: '#/definitions/Apps'
+        default:
+          description: 'generic error response'
+          schema:
+            $ref: '#/definitions/ApiError'
+
+  /apps/{id}:
+    get:
+      summary: Get app by ID.
+      description: Get app by the database specific ID.
+      operationId: getApp
+      tags:
+        - Services
+      parameters:
+        - in: path
+          name: id
+          type: integer
+          required: true
+          description: App ID.
+      responses:
+        200:
+          description: A app
+          schema:
+            $ref: "#/definitions/App"
+        default:
+          description: generic error response
+          schema:
+            $ref: "#/definitions/ApiError"
+
+  /apps-stats:
+    get:
+      summary: Get applications statistics.
+      description: It returns a number of apps of a given type, a number of apps with some inactive daemons, etc.
+      operationId: getAppsStats
+      tags:
+        - Services
+      responses:
+        200:
+          description: Application statistics
+          schema:
+            $ref: "#/definitions/AppsStats"
+        default:
+          description: generic error response
+          schema:
+            $ref: "#/definitions/ApiError"
+
+  /apps/{id}/services/status:
+    get:
+      summary: Get services status for a given application.
+      description: >-
+        Services status comprises runtime information about the services.
+        In particular, a Kea application status comprises information about
+        the High Availability service, such as HA state, partner's state etc.
+      operationId: getAppServicesStatus
+      tags:
+        - Services
+      parameters:
+        - in: path
+          name: id
+          type: integer
+          required: true
+          description: App ID.
+      responses:
+        200:
+          description: Services with their status.
+          schema:
+            $ref: '#/definitions/ServicesStatus'
+        default:
+          description: generic error response
+          schema:
+            $ref: '#/definitions/ApiError'
+
+  /apps/{id}/name:
+    put:
+      summary: Rename the specified app.
+      description: >-
+        Sets new name for the app identified by specified identifier.
+        This operation may fail if the new name is invalid or if the
+        given app does not exist.
+      operationId: renameApp
+      tags:
+        - Services
+      parameters:
+        - name: id
+          in: path
+          type: integer
+          required: true
+          description: App ID.
+        - name: newAppName
+          in: body
+          required: true
+          description: New app name.
+          schema:
+            type: object
+            required:
+              - name
+            properties:
+              name:
+                type: string
+      responses:
+        200:
+          description: App successfully renamed.
+        default:
+          description: generic error response
+          schema:
+            $ref: '#/definitions/ApiError'
+
+  /app/{appId}/access-points/{type}/key:
+    get:
+      summary: Get the access point key.
+      description: >-
+        It returns the authentication key assigned to a given access point.
+        This endpoint is allowed only for super-administrators.
+      operationId: getAccessPointKey
+      tags:
+        - Services
+      parameters:
+        - name: appId
+          in: path
+          type: integer
+          required: true
+          description: App ID
+        - name: type
+          in: path
+          type: string
+          required: true
+          description: Access point type
+      responses:
+        200:
+          description: The authentication key.
+          schema:
+            type: string
+        default:
+          description: generic error response
+          schema:
+            $ref: '#/definitions/ApiError'
+
+  /logs/{id}:
+    get:
+      summary: Gets the tail of the given log file.
+      description: >-
+        Returns the tail of the specified log file. It is possible to specify the offset
+        from which the log should be returned.
+      operationId: getLogTail
+      tags:
+        - Services
+      parameters:
+        - in: path
+          name: id
+          type: integer
+          required: true
+          description: Log file identifier in the database.
+        - in: query
+          name: maxLength
+          type: integer
+          required: false
+          description: Maximum length of the data fetched.
+      responses:
+        200:
+          description: Tail of the log file returned successfully.
+          schema:
+            $ref: '#/definitions/LogTail'
+        default:
+          description: generic error response
+          schema:
+            $ref: '#/definitions/ApiError'
+
+  /daemons/{id}:
+    put:
+      summary: Update daemon.
+      description: Update daemon.
+      operationId: updateDaemon
+      tags:
+        - Services
+      parameters:
+        - in: path
+          name: id
+          type: integer
+          required: true
+          description: Daemon ID.
+        - in: body
+          name: daemon
+          description: Daemon details
+          schema:
+            type: object
+            properties:
+              monitored:
+                type: boolean
+      responses:
+        200:
+          description: Daemon information.
+        default:
+          description: generic error response
+          schema:
+            $ref: "#/definitions/ApiError"
+
+  /daemons/{id}/config:
+    get:
+      summary: Get daemon configuration
+      description: Get internal daemon configuration. Only Kea daemon supported.
+      operationId: getDaemonConfig
+      tags:
+        - Services
+      parameters:
+        - in: path
+          name: id
+          type: integer
+          required: true
+          description: Daemon ID
+      responses:
+        200:
+          description: Daemon configuration information.
+          schema:
+            $ref: "#/definitions/KeaDaemonConfig"
+        default:
+          description: generic error response
+          schema:
+            $ref: "#/definitions/ApiError"
+
+  /daemons/{id}/config-reports:
+    get:
+      summary: Get configuration review reports
+      description: >-
+        Configuration review reports describe issues or suggestions for changes
+        in the daemon configurations. This call retrieves the reports by daemon
+        ID.
+      operationId: getDaemonConfigReports
+      tags:
+        - Services
+      parameters:
+        - $ref: '#/parameters/paginationStartParam'
+        - $ref: '#/parameters/paginationLimitParam'
+        - name: id
+          in: path
+          type: integer
+          required: true
+          description: Daemon ID
+        - name: issuesOnly
+          in: query
+          type: boolean
+          description: Get only reports containing issues
+          default: false
+      responses:
+        200:
+          description: Daemon configuration review reports list.
+          schema:
+            $ref: "#/definitions/ConfigReports"
+        202:
+          description: Config review for the daemon is in progress.
+        204:
+          description: No config reports currently available for the daemon.
+        default:
+          description: generic error response
+          schema:
+            $ref: "#/definitions/ApiError"
+
+  /daemons/{id}/config-review:
+    put:
+      summary: Attempt to begin a new configuration review.
+      description: >-
+        Configuration review is a background server task. This method schedules
+        a new review for selected daemon. If a review for this daemon is already
+        in progress the new review is not started.
+      operationId: putDaemonConfigReview
+      tags:
+        - Services
+      parameters:
+        - name: id
+          in: path
+          type: integer
+          required: true
+          description: Daemon ID
+      responses:
+        202:
+          description: >-
+            New configuration review has been started but the review results
+            are not available yet. Poll config reports for the daemon to check
+            their availability.
+        default:
+          description: generic error response
+          schema:
+            $ref: "#/definitions/ApiError"
+
+  /daemons/global/config-checkers:
+    get:
+      summary: Get global config checker preferences.
+      description: >-
+        Configuration review executes available checkers to find configuration
+        issues. The checkers may be disabled or enabled globally or per daemon.
+        This endpoint returns the global checkers' configuration metadata and
+        preferences.
+      operationId: getGlobalConfigCheckers
+      tags:
+        - Services
+      responses:
+        200:
+            description: Global configuration checker list.
+            schema:
+              $ref: "#/definitions/ConfigCheckers"
+        default:
+          description: generic error response
+          schema:
+            $ref: "#/definitions/ApiError"
+    put:
+      summary: Update global config checker preferences.
+      description: Updates global config checker preferences.
+      operationId: putGlobalConfigCheckerPreferences
+      tags:
+        - Services
+      parameters:
+        - in: body
+          name: changes
+          description: Global checker preferences to change.
+          schema:
+            $ref: '#/definitions/ConfigCheckerPreferences'
+      responses:
+        200:
+          description: List of global config checker metadata and preferences.
+          schema:
+            $ref: "#/definitions/ConfigCheckers"
+        default:
+          description: generic error response
+          schema:
+            $ref: "#/definitions/ApiError"
+
+  /daemons/{id}/config-checkers:
+    get:
+      summary: Get config checkers for a given daemon.
+      description: >-
+        Configuration review executes multiple configuration checkers to found
+        various issues. The checkers may be disabled or enabled globally or
+        per daemon. This endpoint returns the checkers metadata and preferences
+        for a specific daemon.
+      operationId: getDaemonConfigCheckers
+      tags:
+        - Services
+      parameters:
+        - name: id
+          in: path
+          type: integer
+          required: true
+          description: Daemon ID
+      responses:
+        200:
+            description: Daemon configuration checker list.
+            schema:
+              $ref: "#/definitions/ConfigCheckers"
+        default:
+          description: generic error response
+          schema:
+            $ref: "#/definitions/ApiError"
+    put:
+      summary: Update config checker preferences for a given daemon.
+      description: Updates config checker preferences for a given daemon.
+      operationId: putDaemonConfigCheckerPreferences
+      tags:
+        - Services
+      parameters:
+        - in: path
+          name: id
+          type: integer
+          required: true
+          description: Daemon ID.
+        - in: body
+          name: changes
+          description: Configuration checker preferences to change.
+          schema:
+            $ref: '#/definitions/ConfigCheckerPreferences'
+      responses:
+        200:
+          description: List of config checker preferences for a given daemon.
+          schema:
+            $ref: "#/definitions/ConfigCheckers"
+        default:
+          description: generic error response
+          schema:
+            $ref: "#/definitions/ApiError"
+
+  /daemons/kea/config-hashes:
+    delete:
+      summary: Delete config hashes for the Kea daemons.
+      description: >-
+        Deleting the config hashes effectively causes the Stork server to fetch
+        and update the Kea configurations in the Stork server's database. This can
+        be useful when the Kea configurations had been updated but it was unnoticed
+        by the Stork server due to a bug or some unexpected event.
+      operationId: deleteKeaDaemonConfigHashes
+      tags:
+        - Services
+      responses:
+        200:
+          description: Config hashes for the Kea daemons have been deleted.
+        default:
+          description: generic error response
+          schema:
+            $ref: "#/definitions/ApiError"

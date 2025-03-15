@@ -1,0 +1,58 @@
+<app-breadcrumbs [items]="breadcrumbs">
+    <div page-help>
+        <p>This page displays a list of the shared networks defined in the Kea instance.</p>
+    </div>
+</app-breadcrumbs>
+
+<p-tabMenu [model]="tabs" [activeItem]="tabs[activeTabIndex]" styleClass="mb-2" [scrollable]="true">
+    <ng-template pTemplate="item" let-item let-i="index">
+        <a
+            role="menuitem"
+            pRipple
+            [routerLink]="item.routerLink"
+            [queryParams]="i === 0 ? networksTableComponent?.validFilter : null"
+            class="p-ripple p-element p-menuitem-link"
+        >
+            <div class="flex justify-content-space-between">
+                <div class="p-menuitem-icon" [ngClass]="item.icon" *ngIf="item.icon"></div>
+                <div class="p-menuitem-text">
+                    <b>{{ item.label }}</b>
+                </div>
+                <div *ngIf="i !== 0" class="pi pi-times close-tab-btn" (click)="closeTabByIndex(i, $event)"></div>
+            </div>
+        </a>
+    </ng-template>
+</p-tabMenu>
+
+<div>
+    <!-- Shared network tab template -->
+    <div *ngIf="activeTabIndex !== 0" [ngSwitch]="openedTabs[activeTabIndex].tabType" class="p-component max-w-50rem">
+        <app-shared-network-tab
+            *ngSwitchCase="SharedNetworkTabType.Display"
+            [sharedNetwork]="openedTabs[activeTabIndex].tabSubject"
+            (sharedNetworkEditBegin)="onSharedNetworkEditBegin(openedTabs[activeTabIndex].tabSubject)"
+            (sharedNetworkDelete)="onSharedNetworkDelete(openedTabs[activeTabIndex].tabSubject)"
+        ></app-shared-network-tab>
+        <app-shared-network-form
+            *ngSwitchCase="SharedNetworkTabType.New"
+            [state]="openedTabs[activeTabIndex].state"
+            (formDestroy)="onSharedNetworkFormDestroy($event)"
+            (formSubmit)="onSharedNetworkFormSubmit($event)"
+            (formCancel)="onSharedNetworkFormCancel()"
+        ></app-shared-network-form>
+        <app-shared-network-form
+            *ngSwitchCase="SharedNetworkTabType.Edit"
+            [state]="openedTabs[activeTabIndex].state"
+            [sharedNetworkId]="openedTabs[activeTabIndex].tabSubject.id"
+            (formDestroy)="onSharedNetworkFormDestroy($event)"
+            (formSubmit)="onSharedNetworkFormSubmit($event)"
+            (formCancel)="onSharedNetworkFormCancel(openedTabs[activeTabIndex].tabSubject.id)"
+        ></app-shared-network-form>
+    </div>
+
+    <app-shared-networks-table
+        #networksTableComponent
+        [hidden]="activeTabIndex !== 0"
+        [dataLoading]="loading"
+    ></app-shared-networks-table>
+</div>

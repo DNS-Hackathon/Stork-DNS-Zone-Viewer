@@ -1,0 +1,20 @@
+<app-breadcrumbs [items]="breadcrumbs">
+    <div page-help>
+        <p>
+            This page displays a list of the most recent events performed by Stork. There are three event urgency
+            levels: info, warning, and error.
+        </p>
+        <p>
+            Each event in the list includes links to more information about the affected daemon, application, or
+            machine.
+        </p>
+    </div>
+</app-breadcrumbs>
+
+<div style="margin-top: 20px">
+    <app-events-panel
+        #eventsTable
+        ui="table"
+        [filter]="{ level: 0, machine: machineId, appType: appType, daemonType: daemonType, user: userId }"
+    ></app-events-panel>
+</div>

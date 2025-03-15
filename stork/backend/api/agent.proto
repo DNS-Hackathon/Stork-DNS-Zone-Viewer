@@ -1,0 +1,239 @@
+syntax = "proto3";
+
+package agentapi;
+
+option go_package = "./;api";
+
+// This package defines API exposed by Stork Agent to Stork Server.
+
+service Agent {
+  // Check connectivity with machine.
+  rpc Ping(PingReq) returns (PingRsp) {}
+
+  // Get state of machine where agent is running. It gathers information about operations system,
+  // its version, CPU and available memory and runtime information like memory usage.
+  rpc GetState(GetStateReq) returns (GetStateRsp) {}
+
+  // Forward rndc command and return results.
+  rpc ForwardRndcCommand(ForwardRndcCommandReq) returns (ForwardRndcCommandRsp) {}
+
+  // Forward statistics request to named daemon and return responses.
+  rpc ForwardToNamedStats(ForwardToNamedStatsReq) returns (ForwardToNamedStatsRsp) {}
+
+  // Forward commands (one or more) to Kea Control Agent and return results.
+  rpc ForwardToKeaOverHTTP(ForwardToKeaOverHTTPReq) returns (ForwardToKeaOverHTTPRsp) {}
+
+  // Get the tail of the specified file, typically a log file.
+  rpc TailTextFile(TailTextFileReq) returns (TailTextFileRsp) {}
+
+  rpc ReceiveZones(ReceiveZonesReq) returns (stream Zone) {}
+}
+
+
+message Status {
+  enum StatusCode {
+    OK = 0;
+    ERROR = 1;
+  }
+
+  // A simple error code that can be easily handled by the client.
+  StatusCode code = 1;
+
+  // An error message in English.
+  string message = 2;
+}
+
+
+message PingReq {
+}
+
+message PingRsp {
+}
+
+message GetStateReq {
+}
+
+// State of machine and its system
+message GetStateRsp {
+  string agentVersion = 1;
+  repeated App apps = 2;
+  string hostname = 3;
+  int64 cpus = 4;
+  string cpusLoad = 5;
+  int64 memory = 6;
+  int64 usedMemory = 7;
+  int64 uptime = 8;
+  string error = 9;
+  string os = 10;
+  string platform = 11;
+  string platformFamily = 12;
+  string platformVersion = 13;
+  string kernelVersion = 14;
+  string kernelArch = 15;
+  string virtualizationSystem = 16;
+  string virtualizationRole = 17;
+  string hostID = 18;
+  // Parameter is no longer used, but it is kept for backward compatibility.
+  // Always false.
+  // TODO: Remove it when the API will be changed.
+  bool agentUsesHTTPCredentials = 19;
+}
+
+// Application access point
+message AccessPoint {
+  string type = 1;  // currently supported types are: "control" and "statistics"
+  string address = 2;
+  int64 port = 3;
+  string key = 4;
+  bool useSecureProtocol = 5;
+}
+
+// Basic information about application.
+message App {
+  string type = 1;  // currently supported types are: "kea" and "bind9"
+  repeated AccessPoint accessPoints = 2;
+}
+
+// Request to Kea CA.
+message KeaRequest {
+  // Request to Kea CA, JSON encoded as string.
+  string request = 1;
+}
+
+message ForwardToKeaOverHTTPReq {
+  // URL to Kea CA
+  string url = 1;
+
+  // List of requests to CA.
+  repeated KeaRequest keaRequests = 2;
+}
+
+// Response from Kea CA.
+message KeaResponse {
+  // Response from CA.
+  bytes response = 1;
+
+  // Status of request execution.
+  Status status = 2;
+}
+
+message ForwardToKeaOverHTTPRsp {
+  // Status of call execution.
+  Status status = 1;
+
+  // List of responses from CA.
+  repeated KeaResponse keaResponses = 2;
+}
+
+// Request to rndc.
+message RndcRequest {
+  // Request to rndc
+  string request = 1;
+}
+
+message ForwardRndcCommandReq {
+  // Daemon access control
+  string Address = 1;
+  int64 Port = 2;
+  RndcRequest rndcRequest = 3;
+}
+
+// Response from Rndc.
+message RndcResponse {
+  // Response from rndc.
+  string response = 1;
+
+  // Status of request execution.
+  Status status = 2;
+}
+
+message ForwardRndcCommandRsp {
+  // Status of call execution.
+  Status status = 1;
+
+  RndcResponse rndcResponse = 2;
+}
+
+// Request to named statistics-channel.
+message NamedStatsRequest {
+  string request = 1;
+}
+
+message ForwardToNamedStatsReq {
+  // URL to named statistics-channel
+  string url = 1;
+
+  NamedStatsRequest namedStatsRequest = 2;
+}
+
+// Response from named statistics-channel
+message NamedStatsResponse {
+  string response = 1;
+
+  // Status of request execution.
+  Status status = 2;
+}
+
+message ForwardToNamedStatsRsp {
+  // Status of call execution.
+  Status status = 1;
+
+  NamedStatsResponse namedStatsResponse = 2;
+}
+
+// Log file tailing request
+message TailTextFileReq {
+  // File to be tailed.
+  string path = 1;
+
+  // Seek info. The offset is counted from the end of file.
+  int64 offset = 2;
+}
+
+// Log file tailing response
+message TailTextFileRsp {
+  // Call execution status.
+  Status status = 1;
+
+  // Array of lines.
+  repeated string lines = 2;
+}
+
+// This request is sent from the server to the agent to receive the
+// zones held in the zone inventories over a gRPC stream.
+message ReceiveZonesReq {
+  // Control address of the DNS server from which the zones are
+  // to be returned.
+  string controlAddress = 1;
+  // Control port of the DNS server from which the zones are to
+  // be returned.
+  int64 controlPort = 2;
+  // Filter the zones by view name.
+  string viewName = 3;
+  // Lower bound zone name (i.e., only the zones ordered after
+  // this zone are returned.)
+  string lowerBound = 4;
+  // Maximum number of zones to be returned.
+  int64 limit = 5;
+  // Filter the zones by load time. Only return the zones loaded
+  // after specified time.
+  int64 loadedAfter = 6;
+}
+
+// A single zone returned over the stream.
+message Zone {
+  // Zone name.
+  string name = 1;
+  // Zone class (typically IN).
+  string class = 2;
+  // Zone serial number.
+  int64 serial = 3;
+  // Zone type (e.g., master).
+  string type = 4;
+  // A timestamp when the zone was loaded as unix time.
+  int64 loaded = 5;
+  // A name of the view where the zone belongs.
+  string view = 6;
+  // Total number of zones.
+  int64 totalZoneCount = 7;
+}

@@ -1,0 +1,21 @@
+# This file is used by the build system to adjust CSS and JS output to support the specified browsers below.
+# For additional information regarding the format and rule options, please see:
+# https://github.com/browserslist/browserslist#queries
+
+# You can see what browsers were selected by your queries by running:
+#   npx browserslist
+
+# 2023-09-25 I have renamed this file due to an issue described here:
+# https://github.com/storybookjs/storybook/issues/21617#issuecomment-1536490488
+# I got the "SyntaxError: Invalid or unexpected token" error on
+# ./browserslist:1 . The '.browserlistrc' is also accepted by the
+# https://github.com/browserslist/browserslist#queries specification.
+
+> 0.5%
+last 2 versions
+Firefox ESR
+not dead
+not IE 9-11 # For IE 9-11 support, remove 'not'.
+# Browsers no longer supported by Angular.
+not op_mini all
+not kaios <= 2.5

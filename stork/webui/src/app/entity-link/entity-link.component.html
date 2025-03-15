@@ -1,0 +1,56 @@
+<span [ngSwitch]="entity" [ngClass]="'entity-link'" [class]="styleClass">
+    <!-- daemon -->
+    <ng-container *ngSwitchCase="'daemon'">
+        {{ showEntityName ? 'daemon' : '' }}
+        <a
+            id="daemon-link"
+            routerLink="/apps/{{ attrs.appType }}/{{ attrs.appId }}"
+            [queryParams]="{ daemon: attrs.name }"
+        >
+            [{{ attrs.id }}] {{ attrs.name }}
+        </a>
+    </ng-container>
+
+    <!-- app -->
+    <ng-container *ngSwitchCase="'app'">
+        {{ showEntityName ? 'app' : '' }}
+        <a id="app-link" routerLink="/apps/{{ attrs.type }}/{{ attrs.id }}">{{ attrs.name }}</a>
+    </ng-container>
+
+    <!-- machine -->
+    <ng-container *ngSwitchCase="'machine'">
+        {{ showEntityName ? 'machine' : '' }}
+        <a id="machine-link" routerLink="/machines/{{ attrs.id }}"> [{{ attrs.id }}] {{ attrs.address }} </a>
+    </ng-container>
+
+    <!-- subnet -->
+    <ng-container *ngSwitchCase="'subnet'">
+        {{ showEntityName ? 'subnet ' : '' }}
+        <a id="subnet-link" routerLink="/dhcp/subnets/{{ attrs.id }}" class="white-space-nowrap">
+            {{ attrs.subnet }}
+        </a>
+    </ng-container>
+
+    <!-- user -->
+    <ng-container *ngSwitchCase="'user'">
+        {{ showEntityName ? 'user' : '' }}
+        <a id="user-link" routerLink="/users/{{ attrs.id }}">
+            [{{ attrs.id }}] {{ attrs.login ? attrs.login : attrs.email }}
+        </a>
+    </ng-container>
+
+    <!-- host reservation -->
+    <ng-container *ngSwitchCase="'host'">
+        {{ showEntityName ? 'host' : '' }}
+        <a id="host-link" routerLink="/dhcp/hosts/{{ attrs.id }}">{{ attrs.label }}</a>
+    </ng-container>
+
+    <!-- shared network -->
+    <ng-container *ngSwitchCase="'shared-network'">
+        {{ showEntityName ? 'shared network' : '' }}
+        <a id="shared-network-link" routerLink="/dhcp/shared-networks/{{ attrs.id }}">{{ attrs.name }}</a>
+    </ng-container>
+
+    <!-- unsupported -->
+    <ng-container *ngSwitchDefault>{{ entity }}</ng-container>
+</span>

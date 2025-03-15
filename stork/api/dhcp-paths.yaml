@@ -1,0 +1,879 @@
+  /leases:
+    get:
+      summary: Get leases allocated by DHCP servers.
+      description: >-
+        This call searches for leases allocated by monitored DHCP servers.
+        The text parameter may contain an IP address, delegated prefix,
+        MAC address, client identifier, or hostname. The Stork server
+        tries to identify the specified value type and sends queries to
+        the Kea servers to find a lease or multiple leases.
+      operationId: getLeases
+      tags:
+        - DHCP
+      parameters:
+        - name: text
+          in: query
+          description: >-
+            Should contain an IP address, MAC address, client id or hostname.
+            It is mutually exclusive with the hostId parameter.
+          type: string
+        - name: hostId
+          in: query
+          description: >-
+            Identifier of the host for which leases should be searched. It is
+            mutually exclusive with the text parameter.
+          type: integer
+      responses:
+        200:
+          description: Success result. It may contain 0, 1 or more leases.
+          schema:
+            $ref: '#/definitions/Leases'
+        default:
+          description: Generic error message.
+          schema:
+            $ref: '#/definitions/ApiError'
+
+  /hosts:
+    get:
+      summary: Get list of DHCP host reservations.
+      description: >-
+        A list of hosts is returned in items field accompanied by total count
+        which indicates total available number of records for given filtering
+        parameters.
+      operationId: getHosts
+      tags:
+        - DHCP
+      parameters:
+        - $ref: '#/parameters/paginationStartParam'
+        - $ref: '#/parameters/paginationLimitParam'
+        - name: appId
+          in: query
+          description: Limit returned list of hosts to these which are served by given app ID.
+          type: integer
+        - name: subnetId
+          in: query
+          description: Limit returned list of hosts to these which belong to a given subnet.
+          type: integer
+        - name: localSubnetId
+          in: query
+          description: >-
+            Limit returned list of hosts to these which belong to a subnet having
+            a specified subnet ID in the Kea configuration.
+          type: integer
+        - name: text
+          in: query
+          description: Limit returned list of hosts to the ones containing the given text.
+          type: string
+        - name: global
+          in: query
+          description: >-
+            If true then return only reservations from global scope, if false then return
+            only reservations from subnets, if null then both types of hosts are return.
+          type: boolean
+        - name: conflict
+          in: query
+          description: >-
+            If true, return those reservations that have been defined
+            simultaneously in the JSON configuration and the host database and
+            whose parameters are not equivalent in both places - they are in
+            conflict.
+          type: boolean
+      responses:
+        200:
+          description: List of hosts
+          schema:
+            $ref: "#/definitions/Hosts"
+        default:
+          description: generic error response
+          schema:
+            $ref: "#/definitions/ApiError"
+
+  /hosts/{id}:
+    get:
+      summary: Get host reservation by ID.
+      description: Get host reservation by the database specific ID.
+      operationId: getHost
+      tags:
+        - DHCP
+      parameters:
+        - in: path
+          name: id
+          type: integer
+          required: true
+          description: Host ID.
+      responses:
+        200:
+          description: Host reservation.
+          schema:
+            $ref: "#/definitions/Host"
+        default:
+          description: generic error response
+          schema:
+            $ref: "#/definitions/ApiError"
+    delete:
+      summary: Delete host by ID.
+      description: Delete host reservation from the DHCP servers.
+      operationId: deleteHost
+      tags:
+        - DHCP
+      parameters:
+        - in: path
+          name: id
+          type: integer
+          required: true
+          description: Host ID.
+      responses:
+        200:
+          description: Host reservation successfully deleted.
+        default:
+          description: generic error response
+          schema:
+            $ref: "#/definitions/ApiError"
+
+  /hosts/new/transaction:
+    post:
+      summary: Begin transaction for adding new host reservation.
+      description: >-
+        Creates a transaction in config manager to add a new host reservation. It returns
+        current list of the available DHCP servers and subnets. Both are required in
+        the form in which the user specifies the new host reservation.
+      operationId: createHostBegin
+      tags:
+        - DHCP
+      responses:
+        200:
+          description: New transaction successfully started.
+          schema:
+            $ref: '#/definitions/CreateHostBeginResponse'
+        default:
+          description: generic error response
+          schema:
+            $ref: '#/definitions/ApiError'
+
+  /hosts/new/transaction/{id}:
+    delete:
+      summary: Cancel transaction to add new host reservation.
+      description: Cancels the transaction to add a new host reservation in the config manager.
+      operationId: createHostDelete
+      tags:
+        - DHCP
+      parameters:
+        - in: path
+          name: id
+          type: integer
+          required: true
+          description: Transaction ID returned when the transaction was created.
+      responses:
+        200:
+          description: Transaction successfully deleted.
+        default:
+          description: generic error response
+          schema:
+            $ref: '#/definitions/ApiError'
+
+  /hosts/new/transaction/{id}/submit:
+    post:
+      summary: Submit transaction adding new host reservation.
+      description: >-
+        Submits a transaction causing the server to create host reservations on
+        respective DHCP servers. It applies and submits the transactions in Stork
+        config manager.
+      operationId:
+        createHostSubmit
+      tags:
+        - DHCP
+      parameters:
+        - in: path
+          name: id
+          type: integer
+          required: true
+          description: Transaction ID returned when the transaction was created.
+        - in: body
+          name: host
+          description: Updated host reservation information.
+          schema:
+            $ref: '#/definitions/Host'
+      responses:
+        200:
+          description: Host reservation successfully submitted.
+        default:
+          description: generic error response
+          schema:
+            $ref: '#/definitions/ApiError'
+
+  /hosts/{hostId}/transaction:
+    post:
+      summary: Begin transaction for updating an existing host reservation.
+      description: >-
+        Creates a transaction in the config manager to update an existing host reservation.
+        It returns the existing host reservation information, a current list of available
+        DHCP servers and subnets. This information is required in the form in which the
+        user edits host reservation data.
+      operationId: updateHostBegin
+      tags:
+        - DHCP
+      parameters:
+        - in: path
+          name: hostId
+          type: integer
+          required: true
+          description: Host ID to which the transaction pertains.
+      responses:
+        200:
+          description: New transaction successfully started.
+          schema:
+            $ref: '#/definitions/UpdateHostBeginResponse'
+        default:
+          description: generic error response
+          schema:
+            $ref: '#/definitions/ApiError'
+
+  /hosts/{hostId}/transaction/{id}:
+    delete:
+      summary: Cancel transaction to update a host reservation.
+      description: Cancels the transaction to update a host reservation in the config manager.
+      operationId: updateHostDelete
+      tags:
+        - DHCP
+      parameters:
+        - in: path
+          name: hostId
+          type: integer
+          required: true
+          description: Host ID to which the transaction pertains.
+        - in: path
+          name: id
+          type: integer
+          required: true
+          description: Transaction ID returned when the transaction was created.
+      responses:
+        200:
+          description: Transaction successfully deleted.
+        default:
+          description: generic error response
+          schema:
+            $ref: '#/definitions/ApiError'
+
+  /hosts/{hostId}/transaction/{id}/submit:
+    post:
+      summary: Submit transaction updating a host reservation.
+      description: >-
+        Submits a transaction causing the server to update host reservations on
+        respective DHCP servers. It applies and submits the transactions in Stork
+        config manager.
+      operationId:
+        updateHostSubmit
+      tags:
+        - DHCP
+      parameters:
+        - in: path
+          name: hostId
+          type: integer
+          required: true
+          description: Host ID to which the transaction pertains.
+        - in: path
+          name: id
+          type: integer
+          required: true
+          description: Transaction ID returned when the transaction was created.
+        - in: body
+          name: host
+          description: Host reservation information.
+          schema:
+            $ref: '#/definitions/Host'
+      responses:
+        200:
+          description: Host reservation successfully updated.
+        default:
+          description: generic error response
+          schema:
+            $ref: '#/definitions/ApiError'
+
+  /subnets:
+    get:
+      summary: Get list of DHCP subnets.
+      description: >-
+        A list of subnets is returned in items field accompanied by total count
+        which indicates total available number of records for given filtering
+        parameters.
+      operationId: getSubnets
+      tags:
+        - DHCP
+      parameters:
+        - $ref: '#/parameters/paginationStartParam'
+        - $ref: '#/parameters/paginationLimitParam'
+        - name: appId
+          in: query
+          description: Limit returned list of subnets to these which are served by given app ID.
+          type: integer
+        - name: localSubnetId
+          in: query
+          description: Limit returned list of subnets to these with have assigned a given subnet ID in the Kea config.
+          type: integer
+        - name: dhcpVersion
+          in: query
+          description: Limit returned list of subnets to either DHCPv4 (4) or DHCPv6 (6).
+          type: integer
+        - name: text
+          in: query
+          description: Limit returned list of subnets to the ones containing indicated text.
+          type: string
+      responses:
+        200:
+          description: List of subnets
+          schema:
+            $ref: "#/definitions/Subnets"
+        default:
+          description: generic error response
+          schema:
+            $ref: "#/definitions/ApiError"
+
+  /subnets/{id}:
+    get:
+      summary: Get a subnet by ID.
+      description: >-
+        This endpoint returns a subnet with the detailed DHCP configuration information.
+        It contains all the necessary data to display the subnet on a dedicated page. Not
+        only does it contain the subnet-level DHCP configuration but also shared-network-level
+        and global configuration this subnet inherits from.
+      operationId: getSubnet
+      tags:
+        - DHCP
+      parameters:
+        - in: path
+          name: id
+          type: integer
+          required: true
+          description: Subnet ID.
+      responses:
+        200:
+          description: Subnet information with shared network and global DHCP parameters.
+          schema:
+            $ref: "#/definitions/Subnet"
+        default:
+          description: generic error response
+          schema:
+            $ref: "#/definitions/ApiError"
+    delete:
+      summary: Delete subnet by ID.
+      description: Delete a subnet from the DHCP servers.
+      operationId: deleteSubnet
+      tags:
+        - DHCP
+      parameters:
+        - in: path
+          name: id
+          type: integer
+          required: true
+          description: Subnet ID.
+      responses:
+        200:
+          description: Subnet successfully deleted.
+        default:
+          description: generic error response
+          schema:
+            $ref: "#/definitions/ApiError"
+
+  /subnets/new/transaction:
+    post:
+      summary: Begin transaction for adding new subnet.
+      description: >-
+        Creates a transaction in config manager to add a new subnet. It returns a
+        current list of the available DHCP servers, shared networks and client
+        classes. All are required in the form in which the user specifies the new
+        subnet.
+      operationId: createSubnetBegin
+      tags:
+        - DHCP
+      responses:
+        200:
+          description: New transaction successfully started.
+          schema:
+            $ref: '#/definitions/CreateSubnetBeginResponse'
+        default:
+          description: generic error response
+          schema:
+            $ref: '#/definitions/ApiError'
+
+  /subnets/new/transaction/{id}:
+    delete:
+      summary: Cancel transaction to add new subnet.
+      description: Cancels the transaction to add a new subnet in the config manager.
+      operationId: createSubnetDelete
+      tags:
+        - DHCP
+      parameters:
+        - in: path
+          name: id
+          type: integer
+          required: true
+          description: Transaction ID returned when the transaction was created.
+      responses:
+        200:
+          description: Transaction successfully deleted.
+        default:
+          description: generic error response
+          schema:
+            $ref: '#/definitions/ApiError'
+
+  /subnets/new/transaction/{id}/submit:
+    post:
+      summary: Submit transaction adding new subnet.
+      description: >-
+        Submits a transaction causing the server to create subnets on the
+        respective DHCP servers. It applies and submits the transactions in Stork
+        config manager.
+      operationId:
+        createSubnetSubmit
+      tags:
+        - DHCP
+      parameters:
+        - in: path
+          name: id
+          type: integer
+          required: true
+          description: Transaction ID returned when the transaction was created.
+        - in: body
+          name: subnet
+          description: Created subnet information.
+          schema:
+            $ref: '#/definitions/Subnet'
+      responses:
+        200:
+          description: Subnet successfully submitted.
+          schema:
+            $ref: '#/definitions/CreateSubnetSubmitResponse'
+        default:
+          description: generic error response
+          schema:
+            $ref: '#/definitions/ApiError'
+
+
+  /subnets/{subnetId}/transaction:
+    post:
+      summary: Begin transaction for updating an existing subnet.
+      description: >-
+        Creates a transaction in the config manager to update an existing subnet. It returns
+        the existing subnet information and a current list of available DHCP servers. This
+        information is required in the form in which the user edits subnet data.
+      operationId: updateSubnetBegin
+      tags:
+        - DHCP
+      parameters:
+        - in: path
+          name: subnetId
+          type: integer
+          required: true
+          description: Subnet ID to which the transaction pertains.
+      responses:
+        200:
+          description: New transaction successfully started.
+          schema:
+            $ref: '#/definitions/UpdateSubnetBeginResponse'
+        default:
+          description: generic error response
+          schema:
+            $ref: '#/definitions/ApiError'
+
+  /subnets/{subnetId}/transaction/{id}:
+    delete:
+      summary: Cancel transaction to update a subnet.
+      description: Cancels the transaction to update a subnet in the config manager.
+      operationId: updateSubnetDelete
+      tags:
+        - DHCP
+      parameters:
+        - in: path
+          name: subnetId
+          type: integer
+          required: true
+          description: Subnet ID to which the transaction pertains.
+        - in: path
+          name: id
+          type: integer
+          required: true
+          description: Transaction ID returned when the transaction was created.
+      responses:
+        200:
+          description: Transaction successfully deleted.
+        default:
+          description: generic error response
+          schema:
+            $ref: '#/definitions/ApiError'
+
+  /subnets/{subnetId}/transaction/{id}/submit:
+    post:
+      summary: Submit transaction updating a subnet.
+      description: >-
+        Submits a transaction causing the server to update subnet on respective
+        DHCP servers. It applies and submits the transaction in Stork config
+        manager.
+      operationId:
+        updateSubnetSubmit
+      tags:
+        - DHCP
+      parameters:
+        - in: path
+          name: subnetId
+          type: integer
+          required: true
+          description: Subnet ID to which the transaction pertains.
+        - in: path
+          name: id
+          type: integer
+          required: true
+          description: Transaction ID returned when the transaction was created.
+        - in: body
+          name: subnet
+          description: Updated subnet information.
+          schema:
+            $ref: '#/definitions/Subnet'
+      responses:
+        200:
+          description: Subnet successfully updated.
+        default:
+          description: generic error response
+          schema:
+            $ref: '#/definitions/ApiError'
+
+  /shared-networks:
+    get:
+      summary: Get list of DHCP shared networks.
+      description: >-
+        A list of shared networks is returned in items field accompanied by total count
+        which indicates total available number of records for given filtering
+        parameters.
+      operationId: getSharedNetworks
+      tags:
+        - DHCP
+      parameters:
+        - $ref: '#/parameters/paginationStartParam'
+        - $ref: '#/parameters/paginationLimitParam'
+        - name: appId
+          in: query
+          description: Limit returned list of subnets to these which are served by given app ID.
+          type: integer
+        - name: dhcpVersion
+          in: query
+          description: Limit returned list of subnets to either DHCPv4 (4) or DHCPv6 (6).
+          type: integer
+        - name: text
+          in: query
+          description: Limit returned list of subnets to the ones containing indicated text.
+          type: string
+      responses:
+        200:
+          description: List of shared networks
+          schema:
+            $ref: "#/definitions/SharedNetworks"
+        default:
+          description: generic error response
+          schema:
+            $ref: "#/definitions/ApiError"
+
+  /shared-networks/{id}:
+    get:
+      summary: Get a shared network by ID.
+      description: >-
+        This endpoint returns a shared network with the detailed DHCP configuration information.
+        It contains all the necessary data to display the shared network on a dedicated page. Not
+        only does it contain the shared network-level DHCP configuration but also global
+        configuration this shared network inherits from.
+      operationId: getSharedNetwork
+      tags:
+        - DHCP
+      parameters:
+        - in: path
+          name: id
+          type: integer
+          required: true
+          description: Shared network ID.
+      responses:
+        200:
+          description: Shared network information with global DHCP parameters.
+          schema:
+            $ref: "#/definitions/SharedNetwork"
+        default:
+          description: generic error response
+          schema:
+            $ref: "#/definitions/ApiError"
+    delete:
+      summary: Delete shared network by ID.
+      description: Delete a shared network from the DHCP servers.
+      operationId: deleteSharedNetwork
+      tags:
+        - DHCP
+      parameters:
+        - in: path
+          name: id
+          type: integer
+          required: true
+          description: Shared network ID.
+      responses:
+        200:
+          description: Shared network successfully deleted.
+        default:
+          description: generic error response
+          schema:
+            $ref: "#/definitions/ApiError"
+
+  /shared-networks/new/transaction:
+    post:
+      summary: Begin transaction for creating a shared network.
+      description: >-
+        Creates a transaction in the config manager to create a new shared network.
+        It returns a list of the existing shared networks, available DHCP servers and
+        client classes. This information is required in the form in which the user
+        edits shared network data.
+      operationId: createSharedNetworkBegin
+      tags:
+        - DHCP
+      responses:
+        200:
+          description: New transaction successfully started.
+          schema:
+            $ref: '#/definitions/CreateSharedNetworkBeginResponse'
+        default:
+          description: generic error response
+          schema:
+            $ref: '#/definitions/ApiError'
+
+  /shared-networks/new/transaction/{id}:
+    delete:
+      summary: Cancel transaction to create a shared network.
+      description: Cancels the transaction to create a shared network in the config manager.
+      operationId: createSharedNetworkDelete
+      tags:
+        - DHCP
+      parameters:
+        - in: path
+          name: id
+          type: integer
+          required: true
+          description: Transaction ID returned when the transaction was created.
+      responses:
+        200:
+          description: Transaction successfully deleted.
+        default:
+          description: generic error response
+          schema:
+            $ref: '#/definitions/ApiError'
+
+  /shared-networks/new/transaction/{id}/submit:
+    post:
+      summary: Submit transaction creating a shared network.
+      description: >-
+        Submits a transaction causing the server to create shared network on
+        respective DHCP servers. It applies and submits the transaction in
+        Stork config manager.
+      operationId:
+        createSharedNetworkSubmit
+      tags:
+        - DHCP
+      parameters:
+        - in: path
+          name: id
+          type: integer
+          required: true
+          description: Transaction ID returned when the transaction was created.
+        - in: body
+          name: sharedNetwork
+          description: New shared network information.
+          schema:
+            $ref: '#/definitions/SharedNetwork'
+      responses:
+        200:
+          description: Shared network successfully submitted.
+          schema:
+            $ref: '#/definitions/CreateSharedNetworkSubmitResponse'
+        default:
+          description: generic error response
+          schema:
+            $ref: '#/definitions/ApiError'
+
+
+  /shared-networks/{sharedNetworkId}/transaction:
+    post:
+      summary: Begin transaction for updating an existing shared network.
+      description: >-
+        Creates a transaction in the config manager to update an existing shared network.
+        It returns the existing shared network information, a current list of available
+        DHCP servers and client classes. This information is required in the form in which
+        the user edits shared network data.
+      operationId: updateSharedNetworkBegin
+      tags:
+        - DHCP
+      parameters:
+        - in: path
+          name: sharedNetworkId
+          type: integer
+          required: true
+          description: Shared network ID to which the transaction pertains.
+      responses:
+        200:
+          description: New transaction successfully started.
+          schema:
+            $ref: '#/definitions/UpdateSharedNetworkBeginResponse'
+        default:
+          description: generic error response
+          schema:
+            $ref: '#/definitions/ApiError'
+
+  /shared-networks/{sharedNetworkId}/transaction/{id}:
+    delete:
+      summary: Cancel transaction to update a shared network.
+      description: Cancels the transaction to update a shared network in the config manager.
+      operationId: updateSharedNetworkDelete
+      tags:
+        - DHCP
+      parameters:
+        - in: path
+          name: sharedNetworkId
+          type: integer
+          required: true
+          description: Shared network ID to which the transaction pertains.
+        - in: path
+          name: id
+          type: integer
+          required: true
+          description: Transaction ID returned when the transaction was created.
+      responses:
+        200:
+          description: Transaction successfully deleted.
+        default:
+          description: generic error response
+          schema:
+            $ref: '#/definitions/ApiError'
+
+  /shared-networks/{sharedNetworkId}/transaction/{id}/submit:
+    post:
+      summary: Submit transaction updating a shared network.
+      description: >-
+        Submits a transaction causing the server to update shared network on
+        respective DHCP servers. It applies and submits the transaction in
+        Stork config manager.
+      operationId:
+        updateSharedNetworkSubmit
+      tags:
+        - DHCP
+      parameters:
+        - in: path
+          name: sharedNetworkId
+          type: integer
+          required: true
+          description: Shared network ID to which the transaction pertains.
+        - in: path
+          name: id
+          type: integer
+          required: true
+          description: Transaction ID returned when the transaction was created.
+        - in: body
+          name: sharedNetwork
+          description: Updated shared network information.
+          schema:
+            $ref: '#/definitions/SharedNetwork'
+      responses:
+        200:
+          description: Shared network successfully updated.
+        default:
+          description: generic error response
+          schema:
+            $ref: '#/definitions/ApiError'
+
+  /kea-global-parameters/transaction:
+    post:
+      summary: Begin transaction for updating global Kea parameters.
+      description: >-
+        Creates a transaction in the config manager to update global Kea configurations.
+        A caller specifies the identifiers of the Kea daemons for which they desire
+        configuration updates. The server returns the daemon information including their
+        configurations.
+      operationId: updateKeaGlobalParametersBegin
+      tags:
+        - DHCP
+      parameters:
+        - in: body
+          name: request
+          required: true
+          description: Request to begin new transaction.
+          schema:
+            $ref: '#/definitions/UpdateKeaDaemonsGlobalParametersBeginRequest'
+      responses:
+        200:
+          description: New transaction successfully started.
+          schema:
+            $ref: '#/definitions/UpdateKeaDaemonsGlobalParametersBeginResponse'
+        default:
+          description: generic error response
+          schema:
+            $ref: '#/definitions/ApiError'
+
+  /kea-global-parameters/transaction/{id}:
+    delete:
+      summary: Cancel transaction for updating global Kea parameters.
+      description: Cancels the transaction for updating Kea global parameters in the config manager.
+      operationId: updateKeaGlobalParametersDelete
+      tags:
+        - DHCP
+      parameters:
+        - in: path
+          name: id
+          type: integer
+          required: true
+          description: Transaction ID returned when the transaction was created.
+      responses:
+        200:
+          description: Transaction successfully deleted.
+        default:
+          description: generic error response
+          schema:
+            $ref: '#/definitions/ApiError'
+
+  /kea-global-parameters/transaction/{id}/submit:
+    post:
+      summary: Submit transaction updating existing global Kea parameters.
+      description: >-
+        Submits a transaction causing the server to update existing configurations
+        on respective Kea servers. It applies and submits the transaction in
+        Stork config manager.
+      operationId:
+        updateKeaGlobalParametersSubmit
+      tags:
+        - DHCP
+      parameters:
+        - in: path
+          name: id
+          type: integer
+          required: true
+          description: Transaction ID returned when the transaction was created.
+        - in: body
+          name: request
+          description: Updated configurations for one or more Kea servers.
+          schema:
+            $ref: '#/definitions/UpdateKeaDaemonsGlobalParametersSubmitRequest'
+      responses:
+        200:
+          description: Kea configurations successfully updated.
+        default:
+          description: generic error response
+          schema:
+            $ref: '#/definitions/ApiError'
+
+  /overview:
+    get:
+      summary: Get overview of whole DHCP state.
+      description: >-
+        A bunch of different information about DHCP like most utilized subnets and shared networks,
+        and state of all Kea daemons.
+      operationId: getDhcpOverview
+      tags:
+        - DHCP
+      responses:
+        200:
+          description: Overview of DHCP state.
+          schema:
+            $ref: "#/definitions/DhcpOverview"
+        default:
+          description: generic error response
+          schema:
+            $ref: "#/definitions/ApiError"

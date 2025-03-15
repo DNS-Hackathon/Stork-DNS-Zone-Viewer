@@ -1,0 +1,44 @@
+  Settings:
+    type: object
+    properties:
+      bind9StatsPullerInterval:
+        type: integer
+      grafanaUrl:
+        type: string
+      keaHostsPullerInterval:
+        type: integer
+      keaStatsPullerInterval:
+        type: integer
+      keaStatusPullerInterval:
+        type: integer
+      appsStatePullerInterval:
+        type: integer
+      enableMachineRegistration:
+        type: boolean
+      enableOnlineSoftwareVersions:
+        type: boolean
+
+  Puller:
+    type: object
+    properties:
+      name:
+        type: string
+      id:
+        type: string
+      interval:
+        type: integer
+      lastInvokedAt:
+        type: string
+        format: date-time
+      lastFinishedAt:
+        type: string
+        format: date-time
+  Pullers:
+    type: object
+    properties:
+      items:
+        type: array
+        items:
+          $ref: '#/definitions/Puller'
+      total:
+        type: integer

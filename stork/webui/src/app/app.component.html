@@ -1,0 +1,58 @@
+<div *ngIf="currentUser">
+    <div class="flex align-items-center top-navbar">
+        <div class="flex-grow-1">
+            <p-menubar [model]="menuItems" styleClass="stork-menubar">
+                <ng-template pTemplate="start">
+                    <div class="flex align-items-center gap-2 mr-2 sm:mr-4 ml-1 sm:ml-2">
+                        <a
+                            routerLink="/"
+                            class="logo no-underline flex flex-shrink-0 align-items-center gap-2"
+                            pTooltip="Version: {{ storkVersion }} <br> Build Date: {{ storkBuildDate }}"
+                            tooltipStyleClass="stork-version-tooltip"
+                            [appendTo]="logoTooltipTarget"
+                            [escape]="false"
+                            #logoTooltipTarget
+                        >
+                            <img src="assets/stork-logo-small.png" id="small-stork-logo-img" height="36" width="41" />
+                            <span class="hidden xl:block"> Stork </span>
+                        </a>
+                    </div>
+                </ng-template>
+                <ng-template pTemplate="end"
+                    ><div class="flex align-items-center gap-2 mx-1 sm:mx-2">
+                        <p-toggleButton
+                            [(ngModel)]="isDark"
+                            (onChange)="changeTheme($event.checked)"
+                            onIcon="pi pi-moon"
+                            offIcon="pi pi-sun"
+                            ariaLabel="Dark/light mode"
+                        />
+                        <p-progressSpinner
+                            *ngIf="(loadingInProgress | async)['state']"
+                            [pTooltip]="(loadingInProgress | async)['text']"
+                            styleClass="w-2rem h-2rem"
+                            strokeWidth="6"
+                            animationDuration=".5s"
+                        ></p-progressSpinner>
+                        <app-global-search></app-global-search>
+                        <p-splitButton
+                            label="Logout ({{ this.currentUser.login || this.currentUser.email }})"
+                            icon="pi pi-sign-out"
+                            id="logout-button"
+                            (onClick)="signOut()"
+                            [model]="userMenuItems"
+                            title="Logout"
+                        ></p-splitButton></div
+                ></ng-template>
+            </p-menubar>
+        </div>
+    </div>
+    <div>
+        <app-priority-errors-panel></app-priority-errors-panel>
+    </div>
+</div>
+<div class="m-3">
+    <p-toast styleClass="stork-toast"></p-toast>
+
+    <router-outlet></router-outlet>
+</div>

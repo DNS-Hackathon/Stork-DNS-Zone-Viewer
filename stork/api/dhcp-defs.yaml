@@ -1,0 +1,676 @@
+# A general purpose type used to differentiate between various
+# IPv4 (or DHCPv4) and IPv6 (or DHCPv6 cases).
+  IPType:
+    type: integer
+    enum: &IPTYPE
+      - 4
+      - 6
+
+# Lease
+
+  Lease:
+    type: object
+    required:
+      - id
+      - appId
+      - appName
+      - cltt
+      - ipAddress
+      - state
+      - subnetId
+      - validLifetime
+    properties:
+      id:
+        type: integer
+      appId:
+        type: integer
+      appName:
+        type: string
+      clientId:
+        type: string
+      cltt:
+        type: integer
+      duid:
+        type: string
+      fqdnFwd:
+        type: boolean
+      fqdnRev:
+        type: boolean
+      hostname:
+        type: string
+      hwAddress:
+        type: string
+      iaid:
+        type: integer
+      ipAddress:
+        type: string
+      leaseType:
+        type: string
+      preferredLifetime:
+        type: integer
+      prefixLength:
+        type: integer
+      state:
+        type: integer
+      subnetId:
+        type: integer
+      userContext:
+        type: object
+      validLifetime:
+        type: integer
+
+  LeasesSearchErredApp:
+    type: object
+    required:
+      - id
+      - name
+    properties:
+      id:
+        type: integer
+      name:
+        type: string
+
+  Leases:
+    type: object
+    properties:
+      items:
+        type: array
+        items:
+          $ref: '#/definitions/Lease'
+      conflicts:
+        type: array
+        items:
+          type: integer
+      erredApps:
+        type: array
+        items:
+          $ref: '#/definitions/LeasesSearchErredApp'
+      total:
+        type: integer
+
+# Option
+
+  DHCPOptionField:
+    type: object
+    properties:
+      fieldType:
+        type: string
+      values:
+        type: array
+        items:
+          type: string
+
+  DHCPOption:
+    type: object
+    properties:
+      code:
+        type: integer
+      alwaysSend:
+        type: boolean
+      encapsulate:
+        type: string
+      fields:
+        type: array
+        items:
+          $ref: '#/definitions/DHCPOptionField'
+      options:
+        type: array
+        items:
+          $ref: '#/definitions/DHCPOption'
+      universe:
+        type: integer
+        enum: *IPTYPE
+
+  DHCPOptions:
+    type: object
+    properties:
+      options:
+        type: array
+        items:
+          $ref: '#/definitions/DHCPOption'
+      optionsHash:
+        type: string
+
+# Host
+
+  HostIdentifier:
+    type: object
+    properties:
+      idType:
+        type: string
+      idHexValue:
+        type: string
+
+  IPReservation:
+    type: object
+    properties:
+      address:
+        type: string
+
+  LocalHost:
+    type: object
+    properties:
+      appId:
+        type: integer
+      daemonId:
+        type: integer
+      appName:
+        type: string
+      dataSource:
+        type: string
+      clientClasses:
+        type: array
+        items:
+          type: string
+      nextServer:
+        type: string
+      serverHostname:
+        type: string
+      bootFileName:
+        type: string
+      options:
+        type: array
+        items:
+          $ref: '#/definitions/DHCPOption'
+      optionsHash:
+        type: string
+      hostname:
+        type: string
+      ipReservations:
+        type: array
+        items:
+          $ref: '#/definitions/IPReservation'
+
+  Host:
+    type: object
+    properties:
+      id:
+        type: integer
+      subnetId:
+        type: integer
+      subnetPrefix:
+        type: string
+      hostIdentifiers:
+        type: array
+        items:
+          $ref: '#/definitions/HostIdentifier'
+      addressReservations:
+        type: array
+        items:
+          $ref: '#/definitions/IPReservation'
+      prefixReservations:
+        type: array
+        items:
+          $ref: '#/definitions/IPReservation'
+      hostname:
+        type: string
+      localHosts:
+        type: array
+        items:
+          $ref: '#/definitions/LocalHost'
+
+  Hosts:
+    type: object
+    properties:
+      items:
+        type: array
+        items:
+          $ref: '#/definitions/Host'
+      total:
+        type: integer
+
+  CreateHostBeginResponse:
+    type: object
+    properties:
+      id:
+        type: integer
+        format: int64
+      daemons:
+        type: array
+        items:
+          $ref: '#/definitions/KeaDaemon'
+      subnets:
+        type: array
+        items:
+          $ref: '#/definitions/Subnet'
+      clientClasses:
+        type: array
+        items:
+          type: string
+
+  UpdateHostBeginResponse:
+    type: object
+    properties:
+      id:
+        type: integer
+        format: int64
+      host:
+        $ref: '#/definitions/Host'
+      daemons:
+        type: array
+        items:
+          $ref: '#/definitions/KeaDaemon'
+      subnets:
+        type: array
+        items:
+          $ref: '#/definitions/Subnet'
+      clientClasses:
+        type: array
+        items:
+          type: string
+
+# Pool
+
+  Pool:
+    type: object
+    required:
+      - pool
+    properties:
+      pool:
+        type: string
+      keaConfigPoolParameters:
+        $ref: '#/definitions/KeaConfigPoolParameters'
+
+# Delegated prefix pool
+
+  DelegatedPrefixPool:
+    type: object
+    required:
+      - prefix
+      - delegatedLength
+    properties:
+      prefix:
+        type: string
+      delegatedLength:
+        type: integer
+      excludedPrefix:
+        type: string
+      keaConfigPoolParameters:
+        $ref: '#/definitions/KeaConfigPoolParameters'
+
+
+# Subnet
+
+  LocalSubnet:
+    type: object
+    properties:
+      id:
+        type: integer
+      appId:
+        type: integer
+      daemonId:
+        type: integer
+      appName:
+        type: string
+      machineAddress:
+        type: string
+      machineHostname:
+        type: string
+      stats:
+        type: object
+      statsCollectedAt:
+        type: string
+        format: date-time
+        x-nullable: true
+      pools:
+        type: array
+        items:
+          $ref: '#/definitions/Pool'
+      prefixDelegationPools:
+        type: array
+        items:
+          $ref: '#/definitions/DelegatedPrefixPool'
+      keaConfigSubnetParameters:
+          $ref: '#/definitions/KeaConfigSubnetParameters'
+      userContext:
+        type: object
+
+  Subnet:
+    type: object
+    properties:
+      id:
+        type: integer
+      subnet:
+        type: string
+      sharedNetworkId:
+        type: integer
+      sharedNetwork:
+        type: string
+      clientClass:
+        type: string
+      addrUtilization:
+        type: number
+      pdUtilization:
+        type: number
+      stats:
+        type: object
+      statsCollectedAt:
+        type: string
+        format: date-time
+        x-nullable: true
+      localSubnets:
+        type: array
+        items:
+          $ref: '#/definitions/LocalSubnet'
+
+  Subnets:
+    type: object
+    properties:
+      items:
+        type: array
+        items:
+          $ref: '#/definitions/Subnet'
+      total:
+        type: integer
+
+  CreateSubnetBeginResponse:
+    type: object
+    properties:
+      id:
+        type: integer
+        format: int64
+      daemons:
+        type: array
+        items:
+          $ref: '#/definitions/KeaDaemon'
+      sharedNetworks4:
+        type: array
+        items:
+          $ref: '#/definitions/SharedNetwork'
+      sharedNetworks6:
+        type: array
+        items:
+          $ref: '#/definitions/SharedNetwork'
+      subnets:
+        type: array
+        items:
+          type: string
+      clientClasses:
+        type: array
+        items:
+          type: string
+
+  CreateSubnetSubmitResponse:
+    type: object
+    properties:
+      subnetId:
+        type: integer
+        format: int64
+
+  UpdateSubnetBeginResponse:
+    type: object
+    properties:
+      id:
+        type: integer
+        format: int64
+      subnet:
+        $ref: '#/definitions/Subnet'
+      daemons:
+        type: array
+        items:
+          $ref: '#/definitions/KeaDaemon'
+      sharedNetworks4:
+        type: array
+        items:
+          $ref: '#/definitions/SharedNetwork'
+      sharedNetworks6:
+        type: array
+        items:
+          $ref: '#/definitions/SharedNetwork'
+      clientClasses:
+        type: array
+        items:
+          type: string
+
+# Shared Network
+
+  LocalSharedNetwork:
+    type: object
+    properties:
+      appId:
+        type: integer
+      daemonId:
+        type: integer
+      appName:
+        type: string
+      keaConfigSharedNetworkParameters:
+          $ref: '#/definitions/KeaConfigSharedNetworkParameters'
+
+  SharedNetwork:
+    type: object
+    properties:
+      id:
+        type: integer
+      name:
+        type: string
+      universe:
+        type: integer
+        enum: *IPTYPE
+      subnets:
+        type: array
+        items:
+          $ref: '#/definitions/Subnet'
+      addrUtilization:
+        type: number
+      pdUtilization:
+        type: number
+      stats:
+        type: object
+      statsCollectedAt:
+        type: string
+        format: date-time
+        x-nullable: true
+      localSharedNetworks:
+        type: array
+        items:
+          $ref: '#/definitions/LocalSharedNetwork'
+
+  SharedNetworks:
+    type: object
+    properties:
+      items:
+        type: array
+        items:
+          $ref: '#/definitions/SharedNetwork'
+      total:
+        type: integer
+
+  CreateSharedNetworkBeginResponse:
+    type: object
+    properties:
+      id:
+        type: integer
+        format: int64
+      daemons:
+        type: array
+        items:
+          $ref: '#/definitions/KeaDaemon'
+      sharedNetworks4:
+        type: array
+        items:
+          type: string
+      sharedNetworks6:
+        type: array
+        items:
+          type: string
+      clientClasses:
+        type: array
+        items:
+          type: string
+
+  CreateSharedNetworkSubmitResponse:
+    type: object
+    properties:
+      sharedNetworkId:
+        type: integer
+        format: int64
+
+  UpdateSharedNetworkBeginResponse:
+    type: object
+    properties:
+      id:
+        type: integer
+        format: int64
+      sharedNetwork:
+        $ref: '#/definitions/SharedNetwork'
+      daemons:
+        type: array
+        items:
+          $ref: '#/definitions/KeaDaemon'
+      sharedNetworks4:
+        type: array
+        items:
+          type: string
+      sharedNetworks6:
+        type: array
+        items:
+          type: string
+      clientClasses:
+        type: array
+        items:
+          type: string
+
+  KeaDaemonConfigurableGlobalParameters:
+    type: object
+    properties:
+      daemonId:
+        type: integer
+      daemonName:
+        type: string
+      partialConfig:
+        $ref: '#/definitions/KeaConfigurableGlobalParameters'
+
+  UpdateKeaDaemonsGlobalParametersBeginRequest:
+    type: object
+    properties:
+      daemonIds:
+        type: array
+        items:
+          type: integer
+          format: int64
+
+  UpdateKeaDaemonsGlobalParametersBeginResponse:
+    type: object
+    properties:
+      id:
+        type: integer
+        format: int64
+      configs:
+        type: array
+        items:
+          $ref: '#/definitions/KeaDaemonConfig'
+
+  UpdateKeaDaemonsGlobalParametersSubmitRequest:
+    type: object
+    properties:
+      configs:
+        type: array
+        items:
+          $ref: '#/definitions/KeaDaemonConfigurableGlobalParameters'
+
+# Overview
+
+  Dhcp4Stats:
+    type: object
+    properties:
+      assignedAddresses:
+        type: string
+        format: bigint
+      totalAddresses:
+        type: string
+        format: bigint
+      declinedAddresses:
+        type: string
+        format: bigint
+
+  Dhcp6Stats:
+    type: object
+    properties:
+      assignedNAs:
+        type: string
+        format: bigint
+      totalNAs:
+        type: string
+        format: bigint
+      assignedPDs:
+        type: string
+        format: bigint
+      totalPDs:
+        type: string
+        format: bigint
+      declinedNAs:
+        type: string
+        format: bigint
+
+  DhcpDaemonHARelationshipOverview:
+    type: object
+    properties:
+      haState:
+        type: string
+      haFailureAt:
+        type: string
+        format: date-time
+        x-nullable: true
+
+  DhcpDaemon:
+    type: object
+    properties:
+      machineId:
+        type: integer
+      machine:
+        type: string
+      appId:
+        type: integer
+      appName:
+        type: string
+      appVersion:
+        type: string
+      name:
+        type: string
+      active:
+        type: boolean
+      monitored:
+        type: boolean
+      rps1:
+        type: number
+        format: float
+      rps2:
+        type: number
+        format: float
+      haEnabled:
+        type: boolean
+      haOverview:
+        type: array
+        items:
+          $ref: '#/definitions/DhcpDaemonHARelationshipOverview'
+      uptime:
+        type: integer
+      agentCommErrors:
+        type: integer
+        format: int64
+      caCommErrors:
+        type: integer
+        format: int64
+      daemonCommErrors:
+        type: integer
+        format: int64
+
+  DhcpOverview:
+    type: object
+    properties:
+      subnets4:
+        $ref: '#/definitions/Subnets'
+      subnets6:
+        $ref: '#/definitions/Subnets'
+      sharedNetworks4:
+        $ref: '#/definitions/SharedNetworks'
+      sharedNetworks6:
+        $ref: '#/definitions/SharedNetworks'
+      dhcp4Stats:
+        $ref: '#/definitions/Dhcp4Stats'
+      dhcp6Stats:
+        $ref: '#/definitions/Dhcp6Stats'
+      dhcpDaemons:
+        type: array
+        items:
+          $ref: '#/definitions/DhcpDaemon'
