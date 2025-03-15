@@ -595,9 +595,3 @@
           $ref: '#/definitions/ConfigCheckerPreference'
       total:
         type: integer
-
-  DNSAppType:
-    type: string
-    enum:
-      - bind9
-      - nsd
