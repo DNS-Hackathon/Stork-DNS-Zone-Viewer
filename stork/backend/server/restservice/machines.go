@@ -1134,6 +1134,7 @@ func (r *RestAPI) appToRestAPI(dbApp *dbmodel.App) *models.App {
 
 	isKeaApp := dbApp.Type == dbmodel.AppTypeKea
 	isBind9App := dbApp.Type == dbmodel.AppTypeBind9
+	isNSDApp := dbApp.Type == dbmodel.AppTypeNSD
 
 	agentErrors := int64(0)
 	var agentStats *agentcomm.AgentCommStatsWrapper
@@ -1165,12 +1166,14 @@ func (r *RestAPI) appToRestAPI(dbApp *dbmodel.App) *models.App {
 		app.Details = struct {
 			models.AppKea
 			models.AppBind9
+			models.AppNSD
 		}{
 			models.AppKea{
 				ExtendedVersion: dbApp.Meta.ExtendedVersion,
 				Daemons:         keaDaemons,
 			},
 			models.AppBind9{},
+			models.AppNSD{},
 		}
 	case isBind9App:
 		var bind9DaemonDB *dbmodel.Daemon
@@ -1185,6 +1188,7 @@ func (r *RestAPI) appToRestAPI(dbApp *dbmodel.App) *models.App {
 		app.Details = struct {
 			models.AppKea
 			models.AppBind9
+			models.AppNSD
 		}{
 			models.AppKea{
 				Daemons: []*models.KeaDaemon{},
@@ -1192,6 +1196,7 @@ func (r *RestAPI) appToRestAPI(dbApp *dbmodel.App) *models.App {
 			models.AppBind9{
 				Daemon: nil,
 			},
+			models.AppNSD{},
 		}
 
 		if bind9DaemonDB == nil {

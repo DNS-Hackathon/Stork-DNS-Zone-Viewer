@@ -26,3 +26,13 @@ func (t AppType) IsKea() bool {
 func (t AppType) IsBind9() bool {
 	return t == AppTypeBind9
 }
+
+// Convenience function checking if the type is NSD.
+func (t AppType) IsNSD() bool {
+	return t == AppTypeNSD
+}
+
+// Convenience function checking if the type is DNS app type.
+func (t AppType) IsDNS() bool {
+	return t == AppTypeNSD || t == AppTypeBind9
+}
