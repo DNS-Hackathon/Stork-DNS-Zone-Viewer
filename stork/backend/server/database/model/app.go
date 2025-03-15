@@ -33,6 +33,7 @@ type AppType = datamodel.AppType
 const (
 	AppTypeKea   = datamodel.AppTypeKea
 	AppTypeBind9 = datamodel.AppTypeBind9
+	AppTypeNSD = datamodel.AppTypeNSD
 )
 
 // Part of app table in database that describes metadata of app. In DB it is stored as JSONB.

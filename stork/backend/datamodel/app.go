@@ -8,6 +8,7 @@ const (
 	AppTypeKea AppType = "kea"
 	// A Bind9 app type.
 	AppTypeBind9 AppType = "bind9"
+	AppTypeNSD AppType = "nsd"
 )
 
 // Converts the type to string.
@@ -23,4 +24,14 @@ func (t AppType) IsKea() bool {
 // Convenience function checking if the type is BIND9.
 func (t AppType) IsBind9() bool {
 	return t == AppTypeBind9
+}
+
+// Convenience function checking if the type is NSD.
+func (t AppType) IsNSD() bool {
+	return t == AppTypeNSD
+}
+
+// Convenience function checking if the type is DNS app type.
+func (t AppType) IsDNS() bool {
+	return t == AppTypeNSD || t == AppTypeBind9
 }
