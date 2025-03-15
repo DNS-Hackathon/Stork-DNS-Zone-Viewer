@@ -1134,7 +1134,7 @@ func (r *RestAPI) appToRestAPI(dbApp *dbmodel.App) *models.App {
 
 	isKeaApp := dbApp.Type == dbmodel.AppTypeKea
 	isBind9App := dbApp.Type == dbmodel.AppTypeBind9
-	isNSDApp := dbApp.Type == dbmodel.AppTypeNSD
+	// isNSDApp := dbApp.Type == dbmodel.AppTypeNSD
 
 	agentErrors := int64(0)
 	var agentStats *agentcomm.AgentCommStatsWrapper
@@ -1280,11 +1280,13 @@ func (r *RestAPI) appSwVersionsToRestAPI(dbApp *dbmodel.App) *models.App {
 		app.Details = struct {
 			models.AppKea
 			models.AppBind9
+			models.AppNSD
 		}{
 			models.AppKea{
 				Daemons: keaDaemons,
 			},
 			models.AppBind9{},
+			models.AppNSD{},
 		}
 	}
 
