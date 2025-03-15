@@ -132,14 +132,16 @@ export class AppComponent implements OnInit, OnDestroy {
                         id: 'kea-apps',
                         visible: false,
                         icon: 'fa fa-server',
-                        routerLink: '/apps/kea/all',
+                        routerLink: '/apps',
+                        queryParams: { appType: 'kea' },
                     },
                     {
-                        label: 'BIND 9 Apps',
-                        id: 'bind9-apps',
+                        label: 'DNS Apps',
+                        id: 'dns-apps',
                         visible: false,
                         icon: 'fa fa-server',
-                        routerLink: '/apps/bind9/all',
+                        routerLink: '/apps',
+                        queryParams: { appType: 'dns' },
                     },
                     {
                         label: 'Machines',
@@ -333,7 +335,7 @@ export class AppComponent implements OnInit, OnDestroy {
                         }
                         // if there are BIND 9 apps then show BIND 9 related menu items
                         // otherwise hide them
-                        const bind9AppsMenuItem = this.getMenuItem('BIND 9 Apps')
+                        const bind9AppsMenuItem = this.getMenuItem('DNS Apps')
                         const dnsMenuItem = this.getMenuItem('DNS')
                         if (data.bind9AppsTotal && data.bind9AppsTotal > 0) {
                             bind9AppsMenuItem['visible'] = true
