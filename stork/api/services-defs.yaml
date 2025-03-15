@@ -218,6 +218,7 @@
         allOf:
           - $ref: '#/definitions/AppKea'
           - $ref: '#/definitions/AppBind9'
+          - $ref: '#/definitions/AppNSD'
 
   KeaDaemonDatabase:
     type: object
@@ -364,11 +365,35 @@
       statsCommErrors:
         type: integer
 
+  NSDDaemon:
+    type: object
+    properties:
+      id:
+        type: integer
+      pid:
+        type: integer
+      name:
+        type: string
+      active:
+        type: boolean
+      monitored:
+        type: boolean
+      version:
+        type: string
+      uptime:
+        type: integer
+
   AppBind9:
     type: object
     properties:
       daemon:
         $ref: '#/definitions/Bind9Daemon'
+
+  AppNSD:
+    type: object
+    properties:
+      daemon:
+        $ref: '#/definitions/NSDDaemon'
 
   AppMachine:
     type: object
@@ -570,3 +595,9 @@
           $ref: '#/definitions/ConfigCheckerPreference'
       total:
         type: integer
+
+  DNSAppType:
+    type: string
+    enum:
+      - bind9
+      - nsd

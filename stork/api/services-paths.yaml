@@ -349,6 +349,12 @@
           in: query
           description: Limit returned list of apps, possible values 'bind9' or 'kea'.
           type: string
+          enum:
+            - kea
+            - bind9
+            - nsd
+            - dns
+            - dhcp
       responses:
         200:
           description: List of apps
