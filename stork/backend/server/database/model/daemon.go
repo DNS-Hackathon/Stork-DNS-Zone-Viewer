@@ -18,6 +18,7 @@ import (
 // Valid daemon names.
 const (
 	DaemonNameBind9  = "named"
+	DaemonNameNSD    = "nsd"
 	DaemonNameDHCPv4 = "dhcp4"
 	DaemonNameDHCPv6 = "dhcp6"
 	DaemonNameD2     = "d2"
@@ -71,6 +72,12 @@ type Bind9Daemon struct {
 	Stats    Bind9DaemonStats
 }
 
+type NSDDaemon struct {
+	tableName struct{} `pg:"nsd_daemon"`
+	ID       int64
+	DaemonID int64
+}
+
 // A structure reflecting all SQL tables holding information about the
 // daemons of various types. It embeds the KeaDaemon structure which
 // holds Kea DHCP specific information for Kea daemons. It is nil
@@ -99,6 +106,7 @@ type Daemon struct {
 
 	KeaDaemon   *KeaDaemon   `pg:"rel:belongs-to"`
 	Bind9Daemon *Bind9Daemon `pg:"rel:belongs-to"`
+	NSDDaemon   *NSDDaemon   `pg:"rel:belongs-to"`
 
 	ConfigReview *ConfigReview `pg:"rel:belongs-to"`
 }
@@ -142,6 +150,16 @@ func NewBind9Daemon(active bool) *Daemon {
 		Active:      active,
 		Monitored:   true,
 		Bind9Daemon: &Bind9Daemon{},
+	}
+	return daemon
+}
+
+func NewNSDDaemon(active bool) *Daemon {
+	daemon := &Daemon{
+		Name:      DaemonNameNSD,
+		Active:    active,
+		Monitored: true,
+		NSDDaemon: &NSDDaemon{},
 	}
 	return daemon
 }

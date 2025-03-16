@@ -1,15 +1,16 @@
-import { Component, OnDestroy, OnInit, ViewChild } from '@angular/core'
+import { ChangeDetectorRef, Component, OnDestroy, OnInit, ViewChild } from '@angular/core'
 import { ActivatedRoute, Router } from '@angular/router'
-import { lastValueFrom, Subject, Subscription } from 'rxjs'
+import { combineLatest, debounceTime, lastValueFrom, Subject, Subscription, zip } from 'rxjs'
 
 import { MessageService, MenuItem, ConfirmationService } from 'primeng/api'
 
 import { daemonStatusErred, getErrorMessage } from '../utils'
 import { ServicesService } from '../backend/api/api'
-import { App } from '../backend'
+import { App, DNSAppType } from '../backend'
 import { Table } from 'primeng/table'
 import { Menu } from 'primeng/menu'
 import { AppTab } from '../apps'
+import { map } from 'rxjs/operators'
 
 /**
  * Replaces the newlines in the versions with the HTML-compatible line breaks.
@@ -46,7 +47,7 @@ function setDaemonStatusErred(app) {
         }
     }
 }
-
+type AppType = 'kea' | 'dns' | DNSAppType
 @Component({
     selector: 'app-apps-page',
     templateUrl: './apps-page.component.html',
@@ -58,18 +59,18 @@ export class AppsPageComponent implements OnInit, OnDestroy {
     private subscriptions = new Subscription()
     breadcrumbs: MenuItem[] = []
 
-    appType: 'kea' | 'bind9'
+    appType: AppType = 'kea'
     // apps table
-    apps: any[]
-    totalApps: number
-    appMenuItems: MenuItem[]
-    dataLoading: boolean
+    apps: App[] = []
+    totalApps: number = 0
+    appMenuItems: MenuItem[] = []
+    dataLoading: boolean = false
 
     // app tabs
     activeTabIdx = 0
-    tabs: MenuItem[]
+    tabs: MenuItem[] = []
     activeItem: MenuItem
-    openedApps: AppTab[]
+    openedApps: AppTab[] = []
     appTab: AppTab = null
 
     refreshedAppTab = new Subject<AppTab>()
@@ -79,7 +80,8 @@ export class AppsPageComponent implements OnInit, OnDestroy {
         private router: Router,
         private servicesApi: ServicesService,
         private msgSrv: MessageService,
-        private confirmService: ConfirmationService
+        private confirmService: ConfirmationService,
+        private cd: ChangeDetectorRef
     ) {}
 
     ngOnDestroy(): void {
@@ -88,10 +90,13 @@ export class AppsPageComponent implements OnInit, OnDestroy {
 
     /** Returns a human-readable application label. */
     getAppsLabel() {
-        if (this.appType === 'bind9') {
-            return 'BIND 9 Apps'
-        } else {
-            return 'Kea Apps'
+        switch (this.appType) {
+            case 'bind9':
+            case 'nsd':
+            case 'dns':
+                return 'DNS Apps'
+            case 'kea':
+                return 'Kea Apps'
         }
     }
 
@@ -106,6 +111,7 @@ export class AppsPageComponent implements OnInit, OnDestroy {
         if (index > 0) {
             this.appTab = this.openedApps[index - 1]
         }
+        this.cd.detectChanges()
     }
 
     /** Append a new tab for the given application. */
@@ -117,107 +123,175 @@ export class AppsPageComponent implements OnInit, OnDestroy {
             ...this.tabs,
             {
                 label: `${app.name}`,
-                routerLink: '/apps/' + this.appType + '/' + app.id,
+                // routerLink: '/apps/' + this.appType + '/' + app.id,
+                routerLink: '/apps/' + app.id,
+                queryParams: { appType: this.mapAppType(app.type as AppType) },
             },
         ]
+        this.cd.detectChanges()
+        console.log('after addAppTab: openedApps', this.openedApps, ' tabs', this.tabs)
+    }
+
+    compareAppType(a: AppType, b: AppType): boolean {
+        if (a === 'kea' || b === 'kea') {
+            return a === b
+        }
+        if (a === 'dns') {
+            return b === 'dns' || b === 'nsd' || b === 'bind9'
+        }
+        if (b === 'dns') {
+            return a === 'nsd' || a === 'bind9'
+        }
+        return a === b
+    }
+
+    mapAppType(t: AppType): AppType {
+        switch (t) {
+            case 'dns':
+            case 'nsd':
+            case 'bind9':
+                return 'dns' as AppType
+            case 'kea':
+                return 'kea' as AppType
+        }
     }
 
     ngOnInit() {
+        console.log('apps-page onInit', Date.now())
+        this.appType = this.mapAppType((this.route.snapshot.queryParamMap.get('appType') ?? 'kea') as AppType)
+        this.breadcrumbs = [{ label: 'Services' }, { label: this.getAppsLabel() }]
+        this.tabs = [{ label: 'All', routerLink: '/apps/all', queryParams: { appType: this.appType } }]
+        // console.log('this.tabs check', this.tabs, Date.now())
+        this.cd.detectChanges()
+
         this.dataLoading = true
         this.subscriptions.add(
-            this.route.paramMap.subscribe((params) => {
-                const newAppType = params.get('appType')
+            combineLatest([this.route.paramMap, this.route.queryParamMap])
+                // .pipe(debounceTime(300))
+                .subscribe((value) => {
+                    console.log('combineLatest next', value, Date.now())
+                    const params = value[0]
+                    const queryParams = value[1]
 
-                if (newAppType !== this.appType) {
-                    this.appType = newAppType as 'kea' | 'bind9'
-                    this.breadcrumbs = [{ label: 'Services' }, { label: this.getAppsLabel() }]
+                    // const newAppType = queryParams.get('appType') ?? 'kea'
+                    // this.tabs = [{ label: 'All', routerLink: '/apps/all', queryParams: { appType: newAppType } }]
 
-                    this.tabs = [{ label: 'All', routerLink: '/apps/' + this.appType + '/all' }]
+                    // })
+                    // this.route.paramMap.subscribe((params) => {
+                    //     const newAppType = params.get('appType')
+                    //
+                    // if (newAppType !== this.appType) {
 
-                    this.apps = []
-                    this.appMenuItems = [
-                        {
-                            label: 'Refresh',
-                            id: 'refresh-single-app',
-                            icon: 'pi pi-refresh',
-                        },
-                    ]
+                    // }
 
-                    this.openedApps = []
+                    const appIdStr = params.get('id')
+                    if (appIdStr === 'all') {
+                        const newAppType = this.mapAppType(<AppType>queryParams.get('appType') ?? 'kea')
+                        if (!this.compareAppType(<AppType>newAppType, this.appType)) {
+                            console.log('newApptype', this.appType, '->', newAppType)
+                            this.appType = newAppType as AppType
+                            this.breadcrumbs = [{ label: 'Services' }, { label: this.getAppsLabel() }]
+                            this.tabs = [
+                                { label: 'All', routerLink: '/apps/all', queryParams: { appType: newAppType } },
+                            ]
+                            this.cd.detectChanges()
+                            // this.tabs = [{ label: 'All', routerLink: '/apps/all' }]
 
-                    if (this.appsTable) {
-                        this.refreshAppsList(this.appsTable)
-                    }
-                }
+                            this.apps = []
+                            this.appMenuItems = [
+                                {
+                                    label: 'Refresh',
+                                    id: 'refresh-single-app',
+                                    icon: 'pi pi-refresh',
+                                },
+                            ]
 
-                const appIdStr = params.get('id')
-                if (appIdStr === 'all') {
-                    this.switchToTab(0)
-                } else {
-                    const appId = parseInt(appIdStr, 10)
+                            this.openedApps = []
 
-                    let found = false
-                    // if tab for this app is already opened then switch to it
-                    for (let idx = 0; idx < this.openedApps.length; idx++) {
-                        const s = this.openedApps[idx].app
-                        if (s.id === appId) {
-                            this.switchToTab(idx + 1)
-                            found = true
-                        }
-                    }
-
-                    // if tab is not opened then search for list of apps if the one is present there,
-                    // if so then open it in new tab and switch to it
-                    if (!found) {
-                        for (const s of this.apps) {
-                            if (s.id === appId) {
-                                this.addAppTab(s)
-                                this.switchToTab(this.tabs.length - 1)
-                                found = true
-                                break
+                            if (this.appsTable) {
+                                this.refreshAppsList(this.appsTable)
                             }
                         }
-                    }
 
-                    // if app is not loaded in list fetch it individually
-                    if (!found) {
-                        this.dataLoading = true
-                        this.servicesApi
-                            .getApp(appId)
-                            .toPromise()
-                            .then((data) => {
-                                if (data.type !== this.appType) {
+                        this.switchToTab(0)
+                    } else {
+                        const appId = parseInt(appIdStr, 10)
+
+                        let found = false
+                        // if tab for this app is already opened then switch to it
+                        for (let idx = 0; idx < this.openedApps?.length; idx++) {
+                            const s = this.openedApps[idx].app
+                            if (s.id === appId) {
+                                console.log('appId', appId, 'found in openApps', Date.now())
+                                this.appType = s.type as AppType
+                                this.switchToTab(idx + 1)
+                                found = true
+                            }
+                        }
+
+                        // if tab is not opened then search for list of apps if the one is present there,
+                        // if so then open it in new tab and switch to it
+                        if (!found) {
+                            for (const s of this.apps) {
+                                if (s.id === appId) {
+                                    console.log('appId', appId, 'found in this.apps', Date.now())
+                                    this.appType = s.type as AppType
+                                    this.addAppTab(s)
+                                    this.switchToTab(this.tabs.length - 1)
+                                    found = true
+                                    break
+                                }
+                            }
+                        }
+
+                        // if app is not loaded in list fetch it individually
+                        if (!found) {
+                            this.dataLoading = true
+                            this.servicesApi
+                                .getApp(appId)
+                                .toPromise()
+                                .then((data) => {
+                                    // TODO: test it with shorter path /apps/id
+                                    // if (!this.compareAppType(<AppType>data.type,this.appType)) {
+                                    //     this.msgSrv.add({
+                                    //         severity: 'error',
+                                    //         summary: 'Cannot find app',
+                                    //         detail: 'Cannot find app with ID ' + appId,
+                                    //         life: 10000,
+                                    //     })
+                                    //     this.router.navigate(['/apps/all'],{queryParams: {'appType': this.appType}})
+                                    //     return
+                                    // }
+
+                                    this.appType = data.type as AppType
+
+                                    this.breadcrumbs = [{ label: 'Services' }, { label: this.getAppsLabel() }]
+                                    this.tabs[0].queryParams = { appType: this.mapAppType(this.appType) }
+                                    this.cd.detectChanges()
+
+                                    htmlizeExtVersion(data)
+                                    setDaemonStatusErred(data)
+                                    this.addAppTab(data)
+                                    this.switchToTab(this.tabs.length - 1)
+                                })
+                                .catch((err) => {
+                                    let msg = getErrorMessage(err)
                                     this.msgSrv.add({
                                         severity: 'error',
-                                        summary: 'Cannot find app',
-                                        detail: 'Cannot find app with ID ' + appId,
+                                        summary: 'Cannot get app',
+                                        detail: 'Getting app with ID ' + appId + ' failed: ' + msg,
                                         life: 10000,
                                     })
-                                    this.router.navigate(['/apps/' + this.appType + '/all'])
-                                    return
-                                }
-
-                                htmlizeExtVersion(data)
-                                setDaemonStatusErred(data)
-                                this.addAppTab(data)
-                                this.switchToTab(this.tabs.length - 1)
-                            })
-                            .catch((err) => {
-                                let msg = getErrorMessage(err)
-                                this.msgSrv.add({
-                                    severity: 'error',
-                                    summary: 'Cannot get app',
-                                    detail: 'Getting app with ID ' + appId + ' failed: ' + msg,
-                                    life: 10000,
+                                    this.router.navigate(['/apps/all'], {
+                                        queryParams: { appType: this.mapAppType(this.appType) },
+                                    })
                                 })
-                                this.router.navigate(['/apps/' + this.appType + '/all'])
-                            })
-                            .finally(() => {
-                                this.dataLoading = false
-                            })
+                                .finally(() => {
+                                    this.dataLoading = false
+                                })
+                        }
                     }
-                }
-            })
+                })
         )
     }
 
@@ -238,7 +312,21 @@ export class AppsPageComponent implements OnInit, OnDestroy {
         // ToDo: Uncaught promise
         // If any HTTP exception will be thrown then the promise
         // fails, but a user doesn't get any message, popup, log.
-        lastValueFrom(this.servicesApi.getApps(event.first, event.rows, text, this.appType))
+        const api =
+            this.appType === 'dns'
+                ? zip([
+                      this.servicesApi.getApps(event.first, event.rows, text, 'bind9'),
+                      this.servicesApi.getApps(event.first, event.rows, text, 'nsd'),
+                  ]).pipe(
+                      map((apps) => {
+                          return {
+                              items: [...(apps[0].items ?? []), ...(apps[1].items ?? [])],
+                              total: (apps[0].total ?? 0) + (apps[1].total ?? 0),
+                          }
+                      })
+                  )
+                : this.servicesApi.getApps(event.first, event.rows, text, this.appType)
+        lastValueFrom(api)
             .then((data) => {
                 this.apps = data.items ?? []
                 this.totalApps = data.total ?? 0
@@ -274,9 +362,10 @@ export class AppsPageComponent implements OnInit, OnDestroy {
         if (this.activeTabIdx === idx) {
             this.switchToTab(idx - 1)
             if (idx - 1 > 0) {
-                this.router.navigate(['/apps/' + this.appType + '/' + this.appTab.app.id])
+                // this.router.navigate(['/apps/' + this.appType + '/' + this.appTab.app.id])
+                this.router.navigate(['/apps/' + this.appTab.app.id])
             } else {
-                this.router.navigate(['/apps/' + this.appType + '/all'])
+                this.router.navigate(['/apps/all'], { queryParams: { appType: this.mapAppType(this.appType) } })
             }
         } else if (this.activeTabIdx > idx) {
             this.activeTabIdx = this.activeTabIdx - 1
@@ -345,7 +434,7 @@ export class AppsPageComponent implements OnInit, OnDestroy {
 
     /** Callback called on click the refresh application list button. */
     refreshAppsList(appsTable) {
-        appsTable.onLazyLoad.emit(appsTable.createLazyLoadMetadata())
+        this.loadApps(appsTable.createLazyLoadMetadata())
     }
 
     /**

@@ -33,6 +33,7 @@ type AppType = datamodel.AppType
 const (
 	AppTypeKea   = datamodel.AppTypeKea
 	AppTypeBind9 = datamodel.AppTypeBind9
+	AppTypeNSD   = datamodel.AppTypeNSD
 )
 
 // Part of app table in database that describes metadata of app. In DB it is stored as JSONB.
@@ -178,6 +179,14 @@ func updateAppDaemons(tx *pg.Tx, app *App) ([]*Daemon, []*Daemon, error) {
 			if err != nil {
 				return nil, nil, pkgerrors.Wrapf(err, "problem upserting BIND 9 daemon to app %d: %v",
 					app.ID, daemon.Bind9Daemon)
+			}
+		} else if daemon.NSDDaemon != nil {
+			// Make sure that the nsd references the daemon.
+			daemon.NSDDaemon.DaemonID = daemon.ID
+			err = upsertInTransaction(tx, daemon.NSDDaemon.ID, daemon.NSDDaemon)
+			if err != nil {
+				return nil, nil, pkgerrors.Wrapf(err, "problem upserting NSD daemon to app %d: %v",
+					app.ID, daemon.NSDDaemon)
 			}
 		}
 
@@ -343,6 +352,7 @@ func GetAppByID(dbi dbops.DBI, id int64) (*App, error) {
 	q = q.Relation("AccessPoints")
 	q = q.Relation("Daemons.KeaDaemon.KeaDHCPDaemon")
 	q = q.Relation("Daemons.Bind9Daemon")
+	q = q.Relation("Daemons.NSDDaemon")
 	q = q.Relation("Daemons.LogTargets")
 	q = q.Where("app.id = ?", id)
 	err := q.Select()
@@ -362,6 +372,7 @@ func GetAppsByMachine(dbi dbops.DBI, machineID int64) ([]*App, error) {
 	q = q.Relation("AccessPoints")
 	q = q.Relation("Daemons.KeaDaemon.KeaDHCPDaemon")
 	q = q.Relation("Daemons.Bind9Daemon")
+	q = q.Relation("Daemons.NSDDaemon")
 	q = q.Relation("Daemons.LogTargets")
 	q = q.Relation("Daemons.ConfigReview")
 	q = q.Where("machine_id = ?", machineID)
@@ -374,27 +385,31 @@ func GetAppsByMachine(dbi dbops.DBI, machineID int64) ([]*App, error) {
 }
 
 // Fetches all apps by type including the corresponding services.
-func GetAppsByType(dbi dbops.DBI, appType AppType) ([]App, error) {
+func GetAppsByType(dbi dbops.DBI, appTypes ...AppType) ([]App, error) {
 	var apps []App
 
 	q := dbi.Model(&apps)
-	q = q.Where("type = ?", appType)
 	q = q.Relation("Machine")
 	q = q.Relation("AccessPoints")
 	q = q.Relation("Daemons.LogTargets")
 
-	switch appType {
-	case AppTypeKea:
-		q = q.Relation("Daemons.Services.HAService")
-		q = q.Relation("Daemons.KeaDaemon.KeaDHCPDaemon")
-	case AppTypeBind9:
-		q = q.Relation("Daemons.Bind9Daemon")
+	for _, appType := range appTypes {
+		q = q.WhereOr("type = ?", appType)
+		switch appType {
+		case AppTypeKea:
+			q = q.Relation("Daemons.Services.HAService")
+			q = q.Relation("Daemons.KeaDaemon.KeaDHCPDaemon")
+		case AppTypeBind9:
+			q = q.Relation("Daemons.Bind9Daemon")
+		case AppTypeNSD:
+			q = q.Relation("Daemons.NSDDaemon")
+		}
 	}
 
 	q = q.OrderExpr("id ASC")
 	err := q.Select()
 	if err != nil {
-		return nil, pkgerrors.Wrapf(err, "problem getting %s apps from database", appType)
+		return nil, pkgerrors.Wrapf(err, "problem getting %d apps from database", len(appTypes))
 	}
 	return apps, nil
 }
@@ -419,6 +434,7 @@ func GetAppsByPage(dbi dbops.DBI, offset int64, limit int64, filterText *string,
 	q = q.Relation("Daemons.KeaDaemon.KeaDHCPDaemon")
 	q = q.Relation("Daemons.Bind9Daemon")
 	q = q.Relation("Daemons.LogTargets")
+	q = q.Relation("Daemons.NSDDaemon")
 	if appType != "" {
 		q = q.Where("type = ?", appType)
 	}

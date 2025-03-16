@@ -101,6 +101,7 @@ type App interface {
 const (
 	AppTypeKea   = "kea"
 	AppTypeBind9 = "bind9"
+	AppTypeNSD   = "nsd"
 )
 
 // The application monitor is responsible for detecting the applications
@@ -108,7 +109,7 @@ const (
 // They are available through assessors.
 type AppMonitor interface {
 	GetApps() []App
-	GetApp(appType, apType, address string, port int64) App
+	GetApp(apType, address string, port int64) App
 	Start(agent *StorkAgent)
 	Shutdown()
 }
@@ -130,6 +131,7 @@ type appMonitor struct {
 const (
 	keaProcName   = "kea-ctrl-agent"
 	namedProcName = "named"
+	nsdProcName   = "nsd"
 )
 
 // Creates an AppMonitor instance. It used to start it as well, but this is now done
@@ -247,7 +249,7 @@ func (sm *appMonitor) detectApps(storkAgent *StorkAgent) {
 	// BIND 9 app is being detecting by browsing list of processes in the system
 	// where cmdline of the process contains given pattern with named substring.
 	bind9Pattern := regexp.MustCompile(`(.*?)named\s+(.*)`)
-
+	nsdPattern := regexp.MustCompile(`(.*?)nsd\s+.*-c\s+(\S+)`)
 	var apps []App
 
 	processes, _ := sm.processManager.ListProcesses()
@@ -258,7 +260,7 @@ func (sm *appMonitor) detectApps(storkAgent *StorkAgent) {
 		cwd := ""
 		var err error
 
-		if procName == keaProcName || procName == namedProcName {
+		if procName == keaProcName || procName == namedProcName || procName == nsdProcName {
 			cmdline, err = p.GetCmdline()
 			if err != nil {
 				log.WithError(err).Warn("Cannot get process command line")
@@ -323,11 +325,23 @@ func (sm *appMonitor) detectApps(storkAgent *StorkAgent) {
 					apps = append(apps, bind9App)
 				}
 			}
+		case nsdProcName:
+			// detect nsd
+			m := nsdPattern.FindStringSubmatch(cmdline)
+			if m != nil {
+				nsdApp := detectNSDApp(m, cwd, sm.commander)
+				if nsdApp != nil {
+					nsdApp.GetBaseApp().Pid = p.GetPid()
+					apps = append(apps, nsdApp)
+				}
+			}
+			goto FINISH
 		default:
 			continue
 		}
 	}
 
+FINISH:
 	// Check changes in apps and print them.
 	if len(apps) == 0 {
 		if !sm.isNoAppsReported {
@@ -383,12 +397,13 @@ func (sm *appMonitor) detectAllowedLogs(storkAgent *StorkAgent) {
 // Iterates over the detected BIND9 apps and populates their zone inventories.
 func (sm *appMonitor) populateZoneInventories() {
 	for _, app := range sm.apps {
-		if bind9app, ok := app.(*Bind9App); ok {
-			if bind9app.zoneInventory == nil || bind9app.zoneInventory.getCurrentState().isReady() {
+		switch app := app.(type) {
+		case *Bind9App:
+			if app.zoneInventory == nil || app.zoneInventory.getCurrentState().isReady() {
 				continue
 			}
 			var busyError *zoneInventoryBusyError
-			if _, err := bind9app.zoneInventory.populate(false); err != nil {
+			if _, err := app.zoneInventory.populate(false); err != nil {
 				switch {
 				case errors.As(err, &busyError):
 					// Inventory creation is in progress. This is not an error.
@@ -397,6 +412,23 @@ func (sm *appMonitor) populateZoneInventories() {
 					log.WithError(err).Error("Failed to populate DNS zones inventory")
 				}
 			}
+		case *NsdApp:
+			if app.zoneInventory == nil || app.zoneInventory.getCurrentState().isReady() {
+				continue
+			}
+
+			var busyError *zoneInventoryBusyError
+			if _, err := app.zoneInventory.populate(false); err != nil {
+				switch {
+				case errors.As(err, &busyError):
+					// Inventory creation is in progress. This is not an error.
+					continue
+				default:
+					log.WithError(err).Error("Failed to populate DNS zones inventory")
+				}
+			}
+		default:
+			continue
 		}
 	}
 }
@@ -410,11 +442,8 @@ func (sm *appMonitor) GetApps() []App {
 }
 
 // Get an app from a monitor that matches provided params.
-func (sm *appMonitor) GetApp(appType, apType, address string, port int64) App {
+func (sm *appMonitor) GetApp(apType, address string, port int64) App {
 	for _, app := range sm.GetApps() {
-		if app.GetBaseApp().Type != appType {
-			continue
-		}
 		for _, ap := range app.GetBaseApp().AccessPoints {
 			if ap.Type == apType && ap.Address == address && ap.Port == port {
 				return app

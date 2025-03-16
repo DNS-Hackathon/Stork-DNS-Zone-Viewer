@@ -7,7 +7,13 @@
 
 <p-tabMenu [model]="tabs" [activeItem]="activeItem" styleClass="mb-2" [scrollable]="true">
     <ng-template pTemplate="item" let-item let-i="index">
-        <a role="menuitem" pRipple [routerLink]="item.routerLink" class="p-ripple p-element p-menuitem-link">
+        <a
+            role="menuitem"
+            pRipple
+            [routerLink]="item.routerLink"
+            [queryParams]="item.queryParams ?? {}"
+            class="p-ripple p-element p-menuitem-link"
+        >
             <div class="flex justify-content-between">
                 <div class="p-menuitem-icon" [ngClass]="item.icon" *ngIf="item.icon"></div>
                 <div class="p-menuitem-text">
@@ -92,11 +98,11 @@
         <ng-template pTemplate="body" let-a>
             <tr>
                 <td>
-                    <a routerLink="/apps/{{ appType }}/{{ a.id }}">{{ a.name }}</a>
+                    <a routerLink="/apps/{{ a.id }}" [queryParams]="{ appType: a.type }">{{ a.name }}</a>
                 </td>
                 <td>
-                    <a routerLink="/apps/{{ appType }}/{{ a.id }}">{{ a.version }}</a>
-                    <app-version-status [app]="appType" [version]="a.version"></app-version-status>
+                    <a routerLink="/apps/{{ a.id }}">{{ a.version }}</a>
+                    <app-version-status [app]="a.type" [version]="a.version"></app-version-status>
                 </td>
                 <td>
                     <app-app-daemons-status [app]="a"></app-app-daemons-status>
@@ -158,4 +164,11 @@
         (refreshApp)="onRefreshApp()"
         (renameApp)="onRenameApp($event)"
     ></app-kea-app-tab>
+    <app-nsd-app-tab
+        *ngIf="appTab.app.type === 'nsd'"
+        [appTab]="appTab"
+        [refreshedAppTab]="refreshedAppTab"
+        (refreshApp)="onRefreshApp()"
+        (renameApp)="onRenameApp($event)"
+    ></app-nsd-app-tab>
 </div>
