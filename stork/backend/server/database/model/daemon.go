@@ -73,6 +73,7 @@ type Bind9Daemon struct {
 }
 
 type NSDDaemon struct {
+	tableName struct{} `pg:"nsd_daemon"`
 	ID       int64
 	DaemonID int64
 }

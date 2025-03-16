@@ -98,7 +98,7 @@
         <ng-template pTemplate="body" let-a>
             <tr>
                 <td>
-                    <a routerLink="/apps/{{ a.id }}">{{ a.name }}</a>
+                    <a routerLink="/apps/{{ a.id }}" [queryParams]="{ appType: a.type }">{{ a.name }}</a>
                 </td>
                 <td>
                     <a routerLink="/apps/{{ a.id }}">{{ a.version }}</a>
@@ -164,4 +164,11 @@
         (refreshApp)="onRefreshApp()"
         (renameApp)="onRenameApp($event)"
     ></app-kea-app-tab>
+    <app-nsd-app-tab
+        *ngIf="appTab.app.type === 'nsd'"
+        [appTab]="appTab"
+        [refreshedAppTab]="refreshedAppTab"
+        (refreshApp)="onRefreshApp()"
+        (renameApp)="onRenameApp($event)"
+    ></app-nsd-app-tab>
 </div>

@@ -451,7 +451,7 @@
                                     ></app-version-status
                                 ></a>
                             </td>
-                            <td>{{ a?.details?.daemon?.name ?? 'unknown' }}</td>
+                            <td>{{ a?.details?.daemon?.name || (a?.details?.nsdaemon?.name ?? 'unknown') }}</td>
                             <td>
                                 <i
                                     *ngIf="a?.details?.daemon"

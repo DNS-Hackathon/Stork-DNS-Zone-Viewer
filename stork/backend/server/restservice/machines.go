@@ -1134,7 +1134,7 @@ func (r *RestAPI) appToRestAPI(dbApp *dbmodel.App) *models.App {
 
 	isKeaApp := dbApp.Type == dbmodel.AppTypeKea
 	isBind9App := dbApp.Type == dbmodel.AppTypeBind9
-	// isNSDApp := dbApp.Type == dbmodel.AppTypeNSD
+	isNSDApp := dbApp.Type == dbmodel.AppTypeNSD
 
 	agentErrors := int64(0)
 	var agentStats *agentcomm.AgentCommStatsWrapper
@@ -1175,6 +1175,35 @@ func (r *RestAPI) appToRestAPI(dbApp *dbmodel.App) *models.App {
 			models.AppBind9{},
 			models.AppNSD{},
 		}
+	case isNSDApp:
+		var nsdDaemonDB *dbmodel.NSDDaemon
+		if len(dbApp.Daemons) > 0 {
+			nsdDaemonDB = dbApp.Daemons[0].NSDDaemon
+		}
+		app.Details = struct{models.AppKea; models.AppBind9; models.AppNSD}{
+			models.AppKea{
+			},
+			models.AppBind9{},
+			models.AppNSD{
+				Nsdaemon: nil,
+			},
+		}
+
+		if nsdDaemonDB == nil {
+			break
+		}
+		name := "nsd"
+		nsdDaemon := &models.NSDDaemon{
+			ID:              nsdDaemonDB.ID,
+			Pid:             int64(0),
+			Name:            name,
+			Active:          true,
+			Monitored:       true,
+			Version:         "na",
+			Uptime:          100,
+		}
+		app.Details.AppNSD.Nsdaemon = nsdDaemon
+		// app.Details.Nsdaemon = nsdDaemon
 	case isBind9App:
 		var bind9DaemonDB *dbmodel.Daemon
 		var namedStats *bind9stats.Bind9NamedStats
@@ -1356,10 +1385,12 @@ func (r *RestAPI) getApps(offset, limit int64, filterText *string, appType strin
 	if err != nil {
 		return nil, err
 	}
+	fmt.Printf("first dbApp first Daemon %+v\n", dbApps[0].Daemons[0])
 	apps := &models.Apps{
 		Total: total,
 	}
 	for _, dbA := range dbApps {
+		fmt.Printf("dbApp first Daemon %+v\n", dbA.Daemons[0])
 		app := dbA
 		a := r.appToRestAPI(&app)
 		apps.Items = append(apps.Items, a)
@@ -1495,7 +1526,7 @@ func (r *RestAPI) GetApp(ctx context.Context, params services.GetAppParams) midd
 	}
 
 	var a *models.App
-	if dbApp.Type == dbmodel.AppTypeBind9 || dbApp.Type == dbmodel.AppTypeKea {
+	if dbApp.Type == dbmodel.AppTypeBind9 || dbApp.Type == dbmodel.AppTypeKea || dbApp.Type == dbmodel.AppTypeNSD {
 		a = r.appToRestAPI(dbApp)
 	}
 	rsp := services.NewGetAppOK().WithPayload(a)

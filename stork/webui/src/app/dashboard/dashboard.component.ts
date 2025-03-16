@@ -16,7 +16,7 @@ import {
 } from '../utils'
 import { SettingService } from '../setting.service'
 import { ServerDataService } from '../server-data.service'
-import { concatMap, lastValueFrom, Subscription } from 'rxjs'
+import { concatMap, lastValueFrom, Subscription, zip } from 'rxjs'
 import { map } from 'rxjs/operators'
 import { parseSubnetsStatisticValues } from '../subnets'
 import {
@@ -290,7 +290,18 @@ export class DashboardComponent implements OnInit, OnDestroy {
                             this.zoneInventoryStateMap.set(s.appId, s)
                         })
                     }
-                    return this.servicesApi.getApps(event?.first ?? 0, event?.rows ?? 5, null, 'bind9')
+                    // return this.servicesApi.getApps(event?.first ?? 0, event?.rows ?? 5, null, 'nsd')
+                    return zip([
+                        this.servicesApi.getApps(event.first ?? 0, event.rows ?? 5, null, 'bind9'),
+                        this.servicesApi.getApps(event.first ?? 0, event.rows ?? 5, null, 'nsd'),
+                    ]).pipe(
+                        map((apps) => {
+                            return {
+                                items: [...(apps[0].items ?? []), ...(apps[1].items ?? [])],
+                                total: (apps[0].total ?? 0) + (apps[1].total ?? 0),
+                            }
+                        })
+                    )
                 })
             )
         )

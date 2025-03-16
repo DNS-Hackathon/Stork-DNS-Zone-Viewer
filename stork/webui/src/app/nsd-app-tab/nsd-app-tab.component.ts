@@ -96,7 +96,7 @@ export class NsdAppTabComponent implements OnInit, OnDestroy {
         this.subscriptions.add(
             this.refreshedAppTab.subscribe((data) => {
                 if (data) {
-                    this.initDaemon(data.app.details.nsdaemon)
+                    this.initDaemon(data.app?.details?.nsdaemon)
                 }
             })
         )
@@ -113,7 +113,7 @@ export class NsdAppTabComponent implements OnInit, OnDestroy {
     set appTab(appTab) {
         this._appTab = appTab
         // Refresh local information about the daemon presented by this component.
-        this.initDaemon(appTab.app.details.daemon)
+        this.initDaemon(appTab.app.details.nsdaemon)
     }
 
     /**
@@ -134,8 +134,9 @@ export class NsdAppTabComponent implements OnInit, OnDestroy {
      *                      data structure.
      */
     private initDaemon(appTabDaemon: NSDDaemon) {
+        console.log('initD', appTabDaemon, Date.now())
         const daemonMap = []
-        daemonMap[appTabDaemon.name] = appTabDaemon
+        daemonMap[appTabDaemon?.name] = appTabDaemon
         const DMAP = [['nsd', 'nsd']]
         const daemons = []
         for (const dm of DMAP) {

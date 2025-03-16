@@ -180,6 +180,14 @@ func updateAppDaemons(tx *pg.Tx, app *App) ([]*Daemon, []*Daemon, error) {
 				return nil, nil, pkgerrors.Wrapf(err, "problem upserting BIND 9 daemon to app %d: %v",
 					app.ID, daemon.Bind9Daemon)
 			}
+		} else if daemon.NSDDaemon != nil {
+			// Make sure that the nsd references the daemon.
+			daemon.NSDDaemon.DaemonID = daemon.ID
+			err = upsertInTransaction(tx, daemon.NSDDaemon.ID, daemon.NSDDaemon)
+			if err != nil {
+				return nil, nil, pkgerrors.Wrapf(err, "problem upserting NSD daemon to app %d: %v",
+					app.ID, daemon.NSDDaemon)
+			}
 		}
 
 		// Identify and delete the log targets that no longer exist for the daemon.
@@ -344,6 +352,7 @@ func GetAppByID(dbi dbops.DBI, id int64) (*App, error) {
 	q = q.Relation("AccessPoints")
 	q = q.Relation("Daemons.KeaDaemon.KeaDHCPDaemon")
 	q = q.Relation("Daemons.Bind9Daemon")
+	q = q.Relation("Daemons.NSDDaemon")
 	q = q.Relation("Daemons.LogTargets")
 	q = q.Where("app.id = ?", id)
 	err := q.Select()
@@ -363,6 +372,7 @@ func GetAppsByMachine(dbi dbops.DBI, machineID int64) ([]*App, error) {
 	q = q.Relation("AccessPoints")
 	q = q.Relation("Daemons.KeaDaemon.KeaDHCPDaemon")
 	q = q.Relation("Daemons.Bind9Daemon")
+	q = q.Relation("Daemons.NSDDaemon")
 	q = q.Relation("Daemons.LogTargets")
 	q = q.Relation("Daemons.ConfigReview")
 	q = q.Where("machine_id = ?", machineID)
@@ -424,6 +434,7 @@ func GetAppsByPage(dbi dbops.DBI, offset int64, limit int64, filterText *string,
 	q = q.Relation("Daemons.KeaDaemon.KeaDHCPDaemon")
 	q = q.Relation("Daemons.Bind9Daemon")
 	q = q.Relation("Daemons.LogTargets")
+	q = q.Relation("Daemons.NSDDaemon")
 	if appType != "" {
 		q = q.Where("type = ?", appType)
 	}

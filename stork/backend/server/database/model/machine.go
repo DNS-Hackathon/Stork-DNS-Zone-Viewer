@@ -205,6 +205,7 @@ func GetMachinesByPage(db *pg.DB, offset int64, limit int64, filterText *string,
 	q = q.Relation("Apps.AccessPoints")
 	q = q.Relation("Apps.Daemons.KeaDaemon.KeaDHCPDaemon")
 	q = q.Relation("Apps.Daemons.Bind9Daemon")
+	q = q.Relation("Apps.Daemons.NSDDaemon")
 
 	// prepare filtering by text
 	if filterText != nil {
@@ -261,6 +262,7 @@ func GetAllMachines(db *pg.DB, authorized *bool) ([]Machine, error) {
 	q = q.Relation("Apps.Daemons.KeaDaemon.KeaDHCPDaemon")
 	q = q.Relation("Apps.Daemons.Bind9Daemon")
 	q = q.Relation("Apps.Daemons.ConfigReview")
+	q = q.Relation("Apps.Daemons.NSDDaemon")
 
 	err := q.Select()
 	if err != nil && errors.Is(err, pg.ErrNoRows) {
