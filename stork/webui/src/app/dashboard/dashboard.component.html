@@ -335,11 +335,14 @@
                                 <a routerLink="/machines/{{ d.machineId }}">{{ d.machine }}</a>
                             </td>
                             <td>
-                                <a routerLink="/apps/kea/{{ d.appId }}">Kea {{ d.appVersion }}</a
+                                <a routerLink="/apps/{{ d.appId }}" [queryParams]="{ appType: 'kea' }"
+                                    >Kea {{ d.appVersion }}</a
                                 ><app-version-status app="kea" [version]="d.appVersion"></app-version-status>
                             </td>
                             <td>
-                                <a routerLink="/apps/kea/{{ d.appId }}">{{ d.appName }}</a>
+                                <a routerLink="/apps/{{ d.appId }}" [queryParams]="{ appType: 'kea' }">{{
+                                    d.appName
+                                }}</a>
                             </td>
                             <td>{{ d.name }}</td>
                             <td>
@@ -355,7 +358,7 @@
                             <td pTooltip="{{ daemonRpsTooltip(d, 2) }}">{{ d.rps2 | number: '1.0-2' }}</td>
                             <td>
                                 <span *ngIf="d.haEnabled && d.haOverview && d.haOverview.length > 0">
-                                    <a routerLink="/apps/kea/{{ d.appId }}">
+                                    <a routerLink="/apps/{{ d.appId }}" [queryParams]="{ appType: 'kea' }">
                                         {{ showHAState(d) }}
                                     </a>
                                 </span>
@@ -437,10 +440,10 @@
                                 <a routerLink="/machines/{{ a.machine.id }}">{{ a.machine.address }}</a>
                             </td>
                             <td>
-                                <a routerLink="/apps/bind9/{{ a.id }}">{{ a.name }}</a>
+                                <a routerLink="/apps/{{ a.id }}" [queryParams]="{ appType: 'dns' }">{{ a.name }}</a>
                             </td>
                             <td>
-                                <a routerLink="/apps/bind9/{{ a.id }}"
+                                <a routerLink="/apps/{{ a.id }}" [queryParams]="{ appType: 'dns' }"
                                     ><app-version-status
                                         [app]="a.type"
                                         [version]="a.version"
