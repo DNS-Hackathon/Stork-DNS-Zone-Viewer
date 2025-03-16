@@ -1,0 +1,96 @@
+<div class="grid m-0">
+    <app-rename-app-dialog
+        [appId]="appTab.app.id"
+        [appName]="appTab.app.name"
+        [existingApps]="existingApps"
+        [existingMachines]="existingMachines"
+        [visible]="appRenameDialogVisible"
+        (submitted)="handleRenameDialogSubmitted($event)"
+        (hidden)="handleRenameDialogHidden()"
+    >
+    </app-rename-app-dialog>
+    <div class="pl-0 pr-0 pb-4 col-12">
+        <p-panel>
+            <p-header>
+                <div class="flex justify-content-between flex-wrap gap-2">
+                    <div class="text-2xl font-bold text-primary-600">
+                        <i class="fa fa-server pr-2"></i> {{ appTab.app.name }}
+                        <i
+                            *ngIf="!showRenameDialogClicked"
+                            class="pi pi-pencil vertical-align-text-top ml-1 text-gray-400 cursor-pointer"
+                            id="rename-app-icon"
+                            (click)="showRenameAppDialog()"
+                        ></i>
+                        <p-progressSpinner
+                            *ngIf="showRenameDialogClicked"
+                            [style]="{ width: '25px', height: '25px' }"
+                            styleClass="app-rename-spinner"
+                            strokeWidth="6"
+                        ></p-progressSpinner>
+                    </div>
+                    <button
+                        type="button"
+                        pButton
+                        label="Refresh App"
+                        id="refresh-app-button"
+                        icon="pi pi-refresh"
+                        (click)="refreshAppState()"
+                    ></button>
+                </div>
+            </p-header>
+            <app-app-overview [app]="appTab.app"></app-app-overview>
+        </p-panel>
+    </div>
+    <div class="p-0 col-12">
+        <p-tabView [activeIndex]="activeTabIndex">
+            <p-tabPanel *ngFor="let daemon of daemons; let i = index" [selected]="i === activeTabIndex">
+                <ng-template pTemplate="header">
+                    <div>
+                        <span
+                            class="pi {{ daemonStatusIconName(daemon) }}"
+                            style="font-size: 1.6em; vertical-align: bottom"
+                        ></span>
+                        <span style="margin-right: 0.5em; font-weight: bold">
+                            {{ daemon.niceName }}
+                        </span>
+                    </div>
+                </ng-template>
+
+                <ng-template pTemplate="content">
+                    <div class="grid p-0">
+                        <div *ngIf="daemon.statusErred" class="col-12 sm:col-10 md:col-6">
+                            <p-message severity="error" [text]="daemonStatusErrorText(daemon)"></p-message>
+                        </div>
+
+                        <div class="col-12 xl:col-7">
+                            <h3>Overview</h3>
+                            <div class="grid">
+                                <div class="col-12 sm:col-3 pb-0 font-medium">Version</div>
+                                <div class="col-12 sm:col-9">
+                                    {{ daemon.version }}
+                                </div>
+                                <div class="col-12 sm:col-3 pb-0 font-medium">Uptime</div>
+                                <div class="col-12 sm:col-9">{{ showDuration(daemon.uptime) }}</div>
+                                <div class="col-12 sm:col-3 pb-0 font-medium">Last Reloaded At</div>
+                                <div class="col-12 sm:col-9">
+                                    {{ daemon.reloadedAt | localtime | placeholder: 'never' }}
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Events -->
+                        <div class="col-12 xl:col-5">
+                            <h3>Events</h3>
+                            <app-events-panel
+                                #eventsTable
+                                [filter]="{
+                                    machine: appTab.app.machine.id,
+                                    appType: appTab.app.type,
+                                }"
+                            ></app-events-panel>
+                        </div>
+                    </div>
+                </ng-template>
+            </p-tabPanel>
+        </p-tabView>
+    </div>
+</div>
