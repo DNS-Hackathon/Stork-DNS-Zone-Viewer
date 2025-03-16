@@ -23,6 +23,9 @@ service Agent {
   // Forward commands (one or more) to Kea Control Agent and return results.
   rpc ForwardToKeaOverHTTP(ForwardToKeaOverHTTPReq) returns (ForwardToKeaOverHTTPRsp) {}
 
+  // Forward request to NSD daemon and return responses.
+  rpc ForwardToNSD(ForwardToNSDReq) returns (ForwardToNSDRsp) {}
+
   // Get the tail of the specified file, typically a log file.
   rpc TailTextFile(TailTextFileReq) returns (TailTextFileRsp) {}
 
@@ -236,4 +239,26 @@ message Zone {
   string view = 6;
   // Total number of zones.
   int64 totalZoneCount = 7;
+}
+
+// Request to NSD.
+message NSDRequest {
+  string request = 1;
+}
+
+message ForwardToNSDReq {
+  string controlAddress = 1;
+  int64 controlPort = 2;
+  string method = 3;
+  string path = 4;
+  NSDRequest nsdRequest = 5;
+}
+
+// Response from NSD.
+message NSDResponse {
+  string response = 1;
+}
+
+message ForwardToNSDRsp {
+  NSDResponse nsdResponse = 1;
 }

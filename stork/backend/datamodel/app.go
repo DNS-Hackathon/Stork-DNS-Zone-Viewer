@@ -8,6 +8,8 @@ const (
 	AppTypeKea AppType = "kea"
 	// A Bind9 app type.
 	AppTypeBind9 AppType = "bind9"
+	// A NSD app type.
+	AppTypeNSD AppType = "nsd"
 )
 
 // Converts the type to string.

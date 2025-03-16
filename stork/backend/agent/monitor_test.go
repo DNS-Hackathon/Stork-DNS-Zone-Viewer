@@ -79,7 +79,7 @@ func TestGetApp(t *testing.T) {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		app := am.GetApp(AppTypeKea, AccessPointControl, "1.2.3.1", 1234)
+		app := am.GetApp(AccessPointControl, "1.2.3.1", 1234)
 		require.NotNil(t, app)
 		require.EqualValues(t, AppTypeKea, app.GetBaseApp().Type)
 	}()
@@ -91,7 +91,7 @@ func TestGetApp(t *testing.T) {
 	wg.Add(1) // expect 1 Done in the wait group
 	go func() {
 		defer wg.Done()
-		app := am.GetApp(AppTypeBind9, AccessPointControl, "2.3.4.4", 2345)
+		app := am.GetApp(AccessPointControl, "2.3.4.4", 2345)
 		require.NotNil(t, app)
 		require.EqualValues(t, AppTypeBind9, app.GetBaseApp().Type)
 	}()
@@ -103,7 +103,7 @@ func TestGetApp(t *testing.T) {
 	wg.Add(1) // expect 1 Done in the wait group
 	go func() {
 		defer wg.Done()
-		app := am.GetApp(AppTypeKea, AccessPointControl, "0.0.0.0", 1)
+		app := am.GetApp(AccessPointControl, "0.0.0.0", 1)
 		require.Nil(t, app)
 	}()
 	ret = <-am.(*appMonitor).requests

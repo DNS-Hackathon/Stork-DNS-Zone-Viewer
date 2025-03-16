@@ -20,6 +20,7 @@ import (
 
 var (
 	_ zoneFetcher                     = (*bind9StatsClient)(nil)
+	_ zoneFetcher                     = (*nsdClient)(nil)
 	_ zoneInventoryStorage            = (*zoneInventoryStorageDisk)(nil)
 	_ zoneInventoryStorage            = (*zoneInventoryStorageMemory)(nil)
 	_ zoneInventoryStorage            = (*zoneInventoryStorageMemoryDisk)(nil)
@@ -683,7 +684,7 @@ func (inventory *zoneInventory) populate(block bool) (chan zoneInventoryAsyncNot
 		// Fetch views and zones from the DNS server.
 		response, views, err := inventory.client.getViews(inventory.host, inventory.port)
 		if err == nil {
-			if response.IsError() {
+			if response != nil && response.IsError() {
 				err = errors.Errorf("DNS server returned error status code %d with message: %s", response.StatusCode(), response.String())
 			} else {
 				err = inventory.storage.saveViews(views)

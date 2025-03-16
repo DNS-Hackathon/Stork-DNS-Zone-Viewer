@@ -37,6 +37,7 @@ type ConnectedAgents interface {
 	ForwardRndcCommand(ctx context.Context, app ControlledApp, command string) (*RndcOutput, error)
 	ForwardToNamedStats(ctx context.Context, app ControlledApp, statsAddress string, statsPort int64, path string, statsOutput interface{}) error
 	ForwardToKeaOverHTTP(ctx context.Context, app ControlledApp, commands []keactrl.SerializableCommand, cmdResponses ...interface{}) (*KeaCmdsResult, error)
+	ForwardToNSD(ctx context.Context, app ControlledApp, path string) (*NSDOutput, error)
 	TailTextFile(ctx context.Context, machine dbmodel.MachineTag, path string, offset int64) ([]string, error)
 	ReceiveZones(ctx context.Context, app ControlledApp, filter *bind9stats.ZoneFilter) iter.Seq2[*bind9stats.ExtendedZone, error]
 }

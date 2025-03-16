@@ -179,6 +179,10 @@ func (fa *FakeAgents) ForwardRndcCommand(ctx context.Context, app agentcomm.Cont
 	return nil, nil
 }
 
+func (fa *FakeAgents) ForwardToNSD(ctx context.Context, app agentcomm.ControlledApp, command string) (*agentcomm.NSDOutput, error) {
+	return nil, nil
+}
+
 // Mimics tailing text file.
 func (fa *FakeAgents) TailTextFile(ctx context.Context, machine dbmodel.MachineTag, path string, offset int64) ([]string, error) {
 	return []string{"lorem ipsum"}, nil

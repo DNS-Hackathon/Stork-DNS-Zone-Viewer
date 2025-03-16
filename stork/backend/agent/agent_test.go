@@ -99,11 +99,8 @@ func (fam *FakeAppMonitor) GetApps() []App {
 }
 
 // Stub function for AppMonitor. It behaves in the same way as original one.
-func (fam *FakeAppMonitor) GetApp(appType, apType, address string, port int64) App {
+func (fam *FakeAppMonitor) GetApp(apType, address string, port int64) App {
 	for _, app := range fam.GetApps() {
-		if app.GetBaseApp().Type != appType {
-			continue
-		}
 		for _, ap := range app.GetBaseApp().AccessPoints {
 			if ap.Type == apType && ap.Address == address && ap.Port == port {
 				return app
@@ -230,7 +227,7 @@ func TestGetState(t *testing.T) {
 	sa, ctx, teardown = setupAgentTest()
 	defer teardown()
 
-	app := fam.GetApp(AppTypeKea, AccessPointControl, "1.2.3.1", 1234).(*KeaApp)
+	app := fam.GetApp(AccessPointControl, "1.2.3.1", 1234).(*KeaApp)
 	app.HTTPClient = NewHTTPClient(HTTPClientConfig{
 		BasicAuth: basicAuthCredentials{User: "foo", Password: "bar"},
 	})
