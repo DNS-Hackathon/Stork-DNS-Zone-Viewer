@@ -10,6 +10,7 @@ import (
 	"isc.org/stork/server/agentcomm"
 	"isc.org/stork/server/apps/bind9"
 	"isc.org/stork/server/apps/kea"
+	"isc.org/stork/server/apps/nsd"
 	"isc.org/stork/server/configreview"
 	dbops "isc.org/stork/server/database"
 	dbmodel "isc.org/stork/server/database/model"
@@ -290,6 +291,9 @@ func UpdateMachineAndAppsState(ctx context.Context, db *dbops.PgDB, dbMachine *d
 		case dbmodel.AppTypeBind9:
 			bind9.GetAppState(ctx2, agents, dbApp, eventCenter)
 			err = bind9.CommitAppIntoDB(db, dbApp, eventCenter)
+		case dbmodel.AppTypeNSD:
+			nsd.GetAppState(ctx2, agents, dbApp, eventCenter)
+			err = nsd.CommitAppIntoDB(db, dbApp, eventCenter)
 		default:
 			err = nil
 		}

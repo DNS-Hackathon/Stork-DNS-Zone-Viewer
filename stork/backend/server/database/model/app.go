@@ -33,6 +33,7 @@ type AppType = datamodel.AppType
 const (
 	AppTypeKea   = datamodel.AppTypeKea
 	AppTypeBind9 = datamodel.AppTypeBind9
+	AppTypeNSD   = datamodel.AppTypeNSD
 )
 
 // Part of app table in database that describes metadata of app. In DB it is stored as JSONB.
@@ -374,27 +375,31 @@ func GetAppsByMachine(dbi dbops.DBI, machineID int64) ([]*App, error) {
 }
 
 // Fetches all apps by type including the corresponding services.
-func GetAppsByType(dbi dbops.DBI, appType AppType) ([]App, error) {
+func GetAppsByType(dbi dbops.DBI, appTypes ...AppType) ([]App, error) {
 	var apps []App
 
 	q := dbi.Model(&apps)
-	q = q.Where("type = ?", appType)
 	q = q.Relation("Machine")
 	q = q.Relation("AccessPoints")
 	q = q.Relation("Daemons.LogTargets")
 
-	switch appType {
-	case AppTypeKea:
-		q = q.Relation("Daemons.Services.HAService")
-		q = q.Relation("Daemons.KeaDaemon.KeaDHCPDaemon")
-	case AppTypeBind9:
-		q = q.Relation("Daemons.Bind9Daemon")
+	for _, appType := range appTypes {
+		q = q.WhereOr("type = ?", appType)
+		switch appType {
+		case AppTypeKea:
+			q = q.Relation("Daemons.Services.HAService")
+			q = q.Relation("Daemons.KeaDaemon.KeaDHCPDaemon")
+		case AppTypeBind9:
+			q = q.Relation("Daemons.Bind9Daemon")
+		case AppTypeNSD:
+			q = q.Relation("Daemons.NSDDaemon")
+		}
 	}
 
 	q = q.OrderExpr("id ASC")
 	err := q.Select()
 	if err != nil {
-		return nil, pkgerrors.Wrapf(err, "problem getting %s apps from database", appType)
+		return nil, pkgerrors.Wrapf(err, "problem getting %d apps from database", len(appTypes))
 	}
 	return apps, nil
 }

@@ -290,7 +290,7 @@ func (sa *StorkAgent) ForwardRndcCommand(ctx context.Context, in *agentapi.Forwa
 		RndcResponse: rndcRsp,
 	}
 
-	app := sa.AppMonitor.GetApp(AppTypeBind9, AccessPointControl, in.Address, in.Port)
+	app := sa.AppMonitor.GetApp(AccessPointControl, in.Address, in.Port)
 	if app == nil {
 		rndcRsp.Status.Code = agentapi.Status_ERROR
 		rndcRsp.Status.Message = "Cannot find BIND 9 app"
@@ -370,6 +370,54 @@ func (sa *StorkAgent) ForwardToNamedStats(ctx context.Context, in *agentapi.Forw
 	return grpcResponse, nil
 }
 
+func (sa *StorkAgent) ForwardToNSD(ctx context.Context, in *agentapi.ForwardToNSDReq) (*agentapi.ForwardToNSDRsp, error) {
+	app := sa.AppMonitor.GetApp(AccessPointControl, in.ControlAddress, in.ControlPort)
+	if app == nil {
+		st := status.Newf(codes.FailedPrecondition, "NSD server %s:%d does not exist", in.ControlAddress, in.ControlPort)
+		ds, err := st.WithDetails(&errdetails.ErrorInfo{
+			Reason: "APP_NOT_FOUND",
+		})
+		if err != nil {
+			return nil, st.Err()
+		}
+		return nil, ds.Err()
+	}
+
+	nsdApp := app.(*NsdApp)
+	if nsdApp == nil {
+		st := status.Newf(codes.FailedPrecondition, "NSD server %s:%d does not exist", in.ControlAddress, in.ControlPort)
+		ds, err := st.WithDetails(&errdetails.ErrorInfo{
+			Reason: "APP_NOT_FOUND",
+		})
+		if err != nil {
+			return nil, st.Err()
+		}
+		return nil, ds.Err()
+	}
+
+	request := in.GetNsdRequest()
+	response, err := nsdApp.sendCommand([]string{"/opt/homebrew/sbin/nsd-control", request.Request})
+	if err != nil {
+		st := status.Newf(codes.FailedPrecondition, "Error response from the server: %+v", err)
+		ds, err := st.WithDetails(&errdetails.ErrorInfo{
+			Reason: "APP_ERROR",
+		})
+		if err != nil {
+			return nil, st.Err()
+		}
+		return nil, ds.Err()
+
+	}
+
+	grpcResponse := &agentapi.ForwardToNSDRsp{
+		NsdResponse: &agentapi.NSDResponse{
+			Response: string(response),
+		},
+	}
+
+	return grpcResponse, nil
+}
+
 // Forwards one or more Kea commands sent by the Stork Server to the appropriate Kea instance over
 // HTTP (via Control Agent).
 func (sa *StorkAgent) ForwardToKeaOverHTTP(ctx context.Context, in *agentapi.ForwardToKeaOverHTTPReq) (*agentapi.ForwardToKeaOverHTTPRsp, error) {
@@ -394,7 +442,7 @@ func (sa *StorkAgent) ForwardToKeaOverHTTP(ctx context.Context, in *agentapi.For
 	}
 
 	host, port, _ := storkutil.ParseURL(reqURL)
-	app := sa.AppMonitor.GetApp(AppTypeKea, AccessPointControl, host, port)
+	app := sa.AppMonitor.GetApp(AccessPointControl, host, port)
 	if app == nil {
 		response.Status.Code = agentapi.Status_ERROR
 		response.Status.Message = "Cannot find Kea app"
@@ -472,10 +520,12 @@ func (sa *StorkAgent) TailTextFile(ctx context.Context, in *agentapi.TailTextFil
 // agent. The response can be filtered or unfiltered, depending on the
 // request.
 func (sa *StorkAgent) ReceiveZones(req *agentapi.ReceiveZonesReq, server grpc.ServerStreamingServer[agentapi.Zone]) error {
-	appI := sa.AppMonitor.GetApp(AppTypeBind9, AccessPointControl, req.ControlAddress, req.ControlPort)
+	appI := sa.AppMonitor.GetApp(AccessPointControl, req.ControlAddress, req.ControlPort)
 	var inventory *zoneInventory
 	switch app := appI.(type) {
 	case *Bind9App:
+		inventory = app.zoneInventory
+	case *NsdApp:
 		inventory = app.zoneInventory
 	default:
 		// This is rather an exceptional case, so we don't necessarily need to

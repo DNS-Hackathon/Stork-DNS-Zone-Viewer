@@ -659,6 +659,51 @@ func (agents *connectedAgentsImpl) ForwardToNamedStats(ctx context.Context, app 
 	return err
 }
 
+type NSDOutput struct {
+	Output string
+}
+
+// Forwards a command to NSD daemon and returns the response.
+func (agents *connectedAgentsImpl) ForwardToNSD(ctx context.Context, app ControlledApp, command string) (*NSDOutput, error) {
+	agentAddress := app.GetMachineTag().GetAddress()
+	agentPort := app.GetMachineTag().GetAgentPort()
+
+	// Get rndc control settings
+	ctrlAddress, ctrlPort, _, _, err := app.GetControlAccessPoint()
+	if err != nil {
+		return nil, err
+	}
+
+	addrPort := net.JoinHostPort(agentAddress, strconv.FormatInt(agentPort, 10))
+
+	// Prepare the on-wire representation of the commands.
+	req := &agentapi.ForwardToNSDReq{
+		ControlAddress: ctrlAddress,
+		ControlPort:    ctrlPort,
+		NsdRequest: &agentapi.NSDRequest{
+			Request: command,
+		},
+	}
+
+	// Send the command to the Stork Agent.
+	resp, err := agents.sendAndRecvViaQueue(addrPort, req)
+	// Stork agent returned an error.
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to send the NSD command to Stork agent %s", addrPort)
+	}
+
+	response, ok := resp.(*agentapi.ForwardToNSDRsp)
+	if !ok || response == nil {
+		return nil, errors.Errorf("wrong response to the NSD command from the Stork agent %s", addrPort)
+	}
+
+	result := &NSDOutput{
+		Output: response.String(),
+	}
+
+	return result, nil
+}
+
 // Result of sending Kea commands to Kea.
 type KeaCmdsResult struct {
 	Error      error
