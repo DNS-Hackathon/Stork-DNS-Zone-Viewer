@@ -243,6 +243,9 @@ export class VersionPageComponent implements OnInit, OnDestroy {
                                 m.versionCheckSeverity
                             )
                             m.apps.forEach((a: BackendApp & { mismatchingDaemons: boolean }) => {
+                                if (a.type === 'nsd') {
+                                    return
+                                }
                                 m.versionCheckSeverity = Math.min(
                                     this.severityMap[
                                         this.versionService.getSoftwareVersionFeedback(
