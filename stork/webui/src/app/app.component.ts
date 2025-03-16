@@ -337,13 +337,13 @@ export class AppComponent implements OnInit, OnDestroy {
                         // otherwise hide them
                         const bind9AppsMenuItem = this.getMenuItem('DNS Apps')
                         const dnsMenuItem = this.getMenuItem('DNS')
-                        if (data.bind9AppsTotal && data.bind9AppsTotal > 0) {
-                            bind9AppsMenuItem['visible'] = true
-                            dnsMenuItem['visible'] = true
-                        } else {
-                            bind9AppsMenuItem['visible'] = false
-                            dnsMenuItem['visible'] = false
-                        }
+                        // if (data.bind9AppsTotal && data.bind9AppsTotal > 0) {
+                        bind9AppsMenuItem['visible'] = true
+                        dnsMenuItem['visible'] = true
+                        // } else {
+                        //     bind9AppsMenuItem['visible'] = false
+                        //     dnsMenuItem['visible'] = false
+                        // }
 
                         // force refresh of top menu in UI
                         this.menuItems = [...this.menuItems]

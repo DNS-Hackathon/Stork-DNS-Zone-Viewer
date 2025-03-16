@@ -116,7 +116,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
      * false otherwise.
      */
     get noApps(): boolean {
-        return this.appsStats.keaAppsTotal === 0 && this.appsStats.bind9AppsTotal === 0
+        return this.appsStats.keaAppsTotal === 0 && this.appsStats.bind9AppsTotal === 0 && false
     }
 
     /**
